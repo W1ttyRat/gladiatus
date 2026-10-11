@@ -80,7 +80,7 @@ arenaRouter.post("/arena/:characterId", async (req: AuthedRequest, res) => {
 
     res.json({
       won: result.won, draw: result.draw, playerDamage: result.playerDamage, enemyDamage: result.enemyDamage,
-      log: result.log, levelsGained: 0, drop: null, ratingChange: delta, goldGain,
+      log: result.log, levelsGained: 0, drops: [], ratingChange: delta, goldGain,
       character: characterDto((await loadCharacter(req.userId!))!),
     });
   } catch (err) {

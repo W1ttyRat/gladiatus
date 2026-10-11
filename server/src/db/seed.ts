@@ -50,22 +50,25 @@ const foods = [
   { name: "Gladiator's Feast", healPct: 100, price: 300, minLevel: 12 },
 ];
 
-// ---- areas: enemy 1-3 are normal, enemy 4 is the boss; each drops one piece of gear ----
+// ---- areas: enemy 1-3 are normal, enemy 4 is the boss; each drops a piece of gear, enemies 2 and 3 may also drop jewelry ----
 const areas = [
   {
     name: "Dusty Outskirts", minLevel: 1,
     enemies: ["Stray Dog", "Bandit Scout", "Rogue Slave", "Bandit Chief"],
     items: ["Leather Cap", "Padded Vest", "Worn Boots", "Chief's Cleaver"],
+    jewelry: ["Lucky Pebble", "Bandit's Band"], // amulet from enemy 2, ring from enemy 3
   },
   {
     name: "Whispering Forest", minLevel: 5,
     enemies: ["Wolf Pack Leader", "Poacher", "Forest Witch", "Ancient Treant"],
     items: ["Hunter's Hood", "Wolfhide Jerkin", "Silent Boots", "Treant Branch"],
+    jewelry: ["Druid's Charm", "Wolf Tooth Ring"],
   },
   {
     name: "Iron Mountains", minLevel: 10,
     enemies: ["Cave Bear", "Dwarf Raider", "Stone Golem", "Mountain King"],
     items: ["Dwarven Helm", "Dwarven Plate", "Mountain Greaves", "King's Warhammer"],
+    jewelry: ["Mountain Heart", "Dwarven Signet"],
   },
 ];
 const dropSlots = ["helmet", "armor", "boots", "weapon"] as const;
@@ -76,6 +79,9 @@ const dropStats = (slot: (typeof dropSlots)[number], t: number): Partial<ItemDef
     boots: { dexterity: 2 * t, hp: 4 * t },
     weapon: { strength: 3 * t, dexterity: t },
   })[slot];
+
+const jewelryStats = (slot: "ring" | "amulet", t: number): Partial<ItemDef> =>
+  slot === "ring" ? { strength: 2 * t, charisma: t } : { constitution: t, intelligence: t, hp: 10 * t };
 
 await pool.query("TRUNCATE areas, items, foods RESTART IDENTITY CASCADE");
 
@@ -105,7 +111,7 @@ for (const [ai, a] of areas.entries()) {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
       [
         rows[0].id, ei + 1, boss, name, lvl, Math.round((60 + lvl * 12) * m),
-        Math.round((6 + lvl * 2) * m), Math.round((5 + lvl) * m), Math.round((5 + lvl) * m),
+        Math.round((2.5 + lvl * 1.5) * m), Math.round((5 + lvl) * m), Math.round((5 + lvl) * m),
         Math.round((5 + lvl * 0.5) * m), Math.round((5 + lvl * 0.5) * m),
         Math.round((10 + lvl * 5) * m), Math.round((5 + lvl * 4) * m),
       ],
@@ -116,7 +122,13 @@ for (const [ai, a] of areas.entries()) {
       name: a.items[ei], slot, ...dropStats(slot, tier), price: Math.round(TIER_PRICE[tier - 1] * (boss ? 0.9 : 0.5)), minLevel: a.minLevel,
     });
     itemIds.set(a.items[ei], itemId);
-    await pool.query("INSERT INTO enemy_drops (enemy_id, item_id, chance) VALUES ($1,$2,$3)", [enemy.rows[0].id, itemId, boss ? 0.5 : 0.3]);
+    await pool.query("INSERT INTO enemy_drops (enemy_id, item_id, chance) VALUES ($1,$2,$3)", [enemy.rows[0].id, itemId, boss ? 0.6 : 0.4]);
+    if (ei === 1 || ei === 2) {
+      const jslot = ei === 1 ? "amulet" : "ring";
+      const jname = a.jewelry[ei - 1];
+      const jid = await insertItem({ name: jname, slot: jslot, ...jewelryStats(jslot, tier), price: Math.round(TIER_PRICE[tier - 1] * 0.5), minLevel: a.minLevel });
+      await pool.query("INSERT INTO enemy_drops (enemy_id, item_id, chance) VALUES ($1,$2,$3)", [enemy.rows[0].id, jid, 0.15]);
+    }
   }
 }
 

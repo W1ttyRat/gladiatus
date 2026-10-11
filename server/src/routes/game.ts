@@ -99,7 +99,7 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
 
     let { level, xp, gold } = c;
     let levelsGained = 0;
-    let drop: { name: string; slot: string } | null = null;
+    const dropped: { name: string; slot: string }[] = [];
     const hp = hpAfterBattle(c.hp, result.enemyDamage);
     result.log.push(`You lose ${c.hp - hp} health.`);
 
@@ -135,12 +135,12 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
           [e.id],
         )
       ).rows;
+      // every drop in the loot table is rolled on its own, so a win can yield several items or none
       for (const d of drops) {
         if (Math.random() < d.chance) {
           await client.query("INSERT INTO character_items (character_id, item_id) VALUES ($1,$2)", [c.id, d.item_id]);
-          drop = { name: d.name, slot: d.slot };
+          dropped.push({ name: d.name, slot: d.slot });
           result.log.push(`${e.name} dropped: ${d.name}!`);
-          break;
         }
       }
     }
@@ -165,7 +165,7 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
       enemyDamage: result.enemyDamage,
       log: result.log,
       levelsGained,
-      drop,
+      drops: dropped,
       character: characterDto(updated!),
     });
   } catch (err) {

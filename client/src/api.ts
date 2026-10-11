@@ -119,7 +119,7 @@ export interface BattleResponse {
   draw: boolean
   playerDamage: number
   enemyDamage: number
-  drop: { name: string; slot: string } | null
+  drops: { name: string; slot: string }[]
   log: string[]
   levelsGained: number
   ratingChange?: number

@@ -25,7 +25,7 @@ export default function BattleLog({ result, onClose }: { result: BattleResponse;
           <>
             <strong className={result.won ? 'win' : 'lose'}>
               {verdict} ({result.playerDamage} vs {result.enemyDamage} damage)
-              {result.drop && ` · found ${result.drop.name}`}
+              {result.drops.length > 0 && ` · found ${result.drops.map((d) => d.name).join(', ')}`}
             </strong>
             <button onClick={onClose}>Continue</button>
           </>
