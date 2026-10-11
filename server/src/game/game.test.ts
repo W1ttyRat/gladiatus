@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BATTLE_ROUNDS, mulberry32, simulateBattle } from "./battle.js";
 import { applyXp, canAttack, canFight, hpAfterBattle, regenAp, regenHp } from "./rules.js";
-import { blockChance, damageReduction, doubleAttackChance, goldMultiplier, maxHpFor, regenPctPerMinute, shopDiscount } from "./stats.js";
+import { eloDelta, slotCapacity, trainingCost, blockChance, damageReduction, doubleAttackChance, goldMultiplier, maxHpFor, regenPctPerMinute, shopDiscount } from "./stats.js";
 
 const hero = { name: "Hero", strength: 12, dexterity: 10, constitution: 10, charisma: 10, intelligence: 10 };
 const foe = { name: "Foe", strength: 6, dexterity: 8, constitution: 5, charisma: 5, intelligence: 5 };
@@ -89,5 +89,23 @@ describe("stat formulas", () => {
     const t = new Date("2026-01-01T00:00:00Z");
     const later = new Date(t.getTime() + 60_000);
     expect(regenHp(0, 1000, t, later, regenPctPerMinute(40)).hp).toBeGreaterThan(regenHp(0, 1000, t, later, regenPctPerMinute(10)).hp);
+  });
+});
+
+describe("arena, training and slots", () => {
+  it("elo: beating a stronger player pays more than beating a weaker one", () => {
+    expect(eloDelta(1000, 1200, 1)).toBeGreaterThan(eloDelta(1000, 800, 1));
+    expect(eloDelta(1000, 1000, 1)).toBe(16);
+    expect(eloDelta(1000, 1000, 0.5)).toBe(0);
+    expect(eloDelta(1000, 1000, 0)).toBe(-16);
+  });
+  it("training gets more expensive with the stat", () => {
+    expect(trainingCost(10)).toBe(50);
+    expect(trainingCost(20)).toBe(200);
+  });
+  it("rings have two slots, everything else one", () => {
+    expect(slotCapacity("ring")).toBe(2);
+    expect(slotCapacity("weapon")).toBe(1);
+    expect(slotCapacity("amulet")).toBe(1);
   });
 });

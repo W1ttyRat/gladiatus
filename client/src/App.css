@@ -54,3 +54,6 @@ button.link { background: none; border: none; color: #c9a45c; text-decoration: u
 button.secondary { background: none; }
 .ranking { width: 100%; border-collapse: collapse; }
 .ranking th, .ranking td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #2c2620; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
+.day { text-align: center; padding: 8px 2px; border: 1px dashed #4a3f33; border-radius: 6px; font-size: 0.8em; color: #9c8f7d; }
+.day.done { border-style: solid; border-color: #8a6a2f; background: #5c431a; color: #f5e6c8; }

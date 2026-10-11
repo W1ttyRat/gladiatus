@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, getToken, setToken, type Character } from './api'
+import Arena from './pages/Arena'
 import Battles from './pages/Battles'
+import Daily from './pages/Daily'
 import Overview from './pages/Overview'
 import Quests from './pages/Quests'
 import Rankings from './pages/Rankings'
 import Shops from './pages/Shops'
+import Training from './pages/Training'
 import './App.css'
 
 function AuthForm({ onDone }: { onDone: () => void }) {
@@ -39,13 +42,16 @@ function AuthForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-type Page = 'overview' | 'battles' | 'quests' | 'shops' | 'rankings'
+type Page = 'overview' | 'battles' | 'arena' | 'quests' | 'shops' | 'training' | 'daily' | 'rankings'
 // Add new pages here; they show up in the sidebar top-down in this order.
 const NAV: { id: Page; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'battles', label: 'Battles' },
+  { id: 'arena', label: 'Arena' },
   { id: 'quests', label: 'Quests' },
   { id: 'shops', label: 'Shops' },
+  { id: 'training', label: 'Training' },
+  { id: 'daily', label: 'Daily Reward' },
   { id: 'rankings', label: 'Rankings' },
 ]
 
@@ -88,8 +94,11 @@ function Game({ onLogout }: { onLogout: () => void }) {
       <main className="content">
         {page === 'overview' && <Overview character={character} onCharacter={setCharacter} />}
         {page === 'battles' && <Battles character={character} onCharacter={setCharacter} />}
+        {page === 'arena' && <Arena character={character} onCharacter={setCharacter} />}
         {page === 'quests' && <Quests onCharacter={setCharacter} />}
         {page === 'shops' && <Shops character={character} onCharacter={setCharacter} />}
+        {page === 'training' && <Training character={character} onCharacter={setCharacter} />}
+        {page === 'daily' && <Daily onCharacter={setCharacter} />}
         {page === 'rankings' && <Rankings />}
       </main>
     </div>

@@ -16,12 +16,12 @@ export default function Rankings() {
       <div className="card">
         <table className="ranking">
           <thead>
-            <tr><th>#</th><th>Gladiator</th><th>Level</th><th>Gold</th><th>Enemies beaten</th></tr>
+            <tr><th>#</th><th>Gladiator</th><th>Level</th><th>Arena</th><th>Gold</th><th>Enemies beaten</th></tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={r.username}>
-                <td>{i + 1}</td><td>{r.username}</td><td>{r.level}</td><td>{r.gold}</td><td>{r.enemiesDefeated}</td>
+                <td>{i + 1}</td><td>{r.username}</td><td>{r.level}</td><td>{r.arenaRating}</td><td>{r.gold}</td><td>{r.enemiesDefeated}</td>
               </tr>
             ))}
           </tbody>

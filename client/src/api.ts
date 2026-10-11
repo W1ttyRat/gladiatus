@@ -18,6 +18,7 @@ export interface Character {
   hp: number
   maxHp: number
   statPoints: number
+  arenaRating: number
   stats: Record<StatKey, { base: number; bonus: number; total: number }>
   derived: {
     doubleAttackChance: number
@@ -109,6 +110,7 @@ export interface RankingRow {
   level: number
   xp: number
   gold: number
+  arenaRating: number
   enemiesDefeated: number
 }
 
@@ -120,7 +122,24 @@ export interface BattleResponse {
   drop: { name: string; slot: string } | null
   log: string[]
   levelsGained: number
+  ratingChange?: number
+  goldGain?: number
   character: Character
+}
+
+export interface ArenaOpponent {
+  id: number
+  username: string
+  level: number
+  rating: number
+}
+
+export interface DailyStatus {
+  streak: number
+  claimedToday: boolean
+  nextStreak: number
+  nextGold: number
+  apBonus: number
 }
 
 const TOKEN_KEY = 'gladiatus_token'
@@ -166,5 +185,11 @@ export const api = {
   quests: () => request<Quest[]>('/quests'),
   acceptQuest: (id: number) => post<{ quests: Quest[] }>(`/quests/${id}/accept`),
   claimQuest: (id: number) => post<{ character: Character; quests: Quest[]; levelsGained: number }>(`/quests/${id}/claim`),
+  arena: () => request<{ rating: number; opponents: ArenaOpponent[] }>('/arena'),
+  arenaFight: (id: number) => post<BattleResponse>(`/arena/${id}`),
+  daily: () => request<DailyStatus>('/daily'),
+  claimDaily: () => post<{ character: Character; gold: number; streak: number }>('/daily/claim'),
+  training: () => request<{ costs: Record<StatKey, number> }>('/training'),
+  train: (stat: StatKey) => post<{ character: Character; costs: Record<StatKey, number> }>(`/training/${stat}`),
   rankings: () => request<RankingRow[]>('/rankings'),
 }

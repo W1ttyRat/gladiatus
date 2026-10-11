@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import { pool } from "../db/pool.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
+import { slotCapacity } from "../game/stats.js";
 import { characterDto, loadCharacter, totalMaxHp } from "../services/character.js";
 
 export const inventoryRouter = Router();
@@ -48,12 +49,20 @@ async function setEquipped(req: AuthedRequest, res: Response, equip: boolean) {
       return res.status(404).json({ error: "Item not found" });
     }
     if (equip) {
-      // only one item per slot: take off whatever is worn there first
-      await client.query(
-        `UPDATE character_items SET equipped = false
-          WHERE character_id = $1 AND equipped AND item_id IN (SELECT id FROM items WHERE slot = $2)`,
-        [c.id, item.slot],
-      );
+      // make room in the slot (one item, or two for rings): take off the longest-worn items first
+      const worn = (
+        await client.query(
+          `SELECT ci.id FROM character_items ci JOIN items i ON i.id = ci.item_id
+            WHERE ci.character_id = $1 AND ci.equipped AND i.slot = $2 AND ci.id <> $3 ORDER BY ci.id`,
+          [c.id, item.slot, itemId],
+        )
+      ).rows;
+      const overflow = worn.length - (slotCapacity(item.slot) - 1);
+      if (overflow > 0) {
+        await client.query("UPDATE character_items SET equipped = false WHERE id = ANY($1::int[])", [
+          worn.slice(0, overflow).map((r) => r.id),
+        ]);
+      }
     }
     await client.query("UPDATE character_items SET equipped = $1 WHERE id = $2", [equip, itemId]);
     // Persist regenerated HP and clamp it to the new max (unequipping can lower it).

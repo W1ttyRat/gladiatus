@@ -3,7 +3,16 @@ import { api, STAT_INFO, STAT_KEYS, type Character, type InventoryItem, type Slo
 import Bar from '../components/Bar'
 import { bonusText } from '../components/ItemInfo'
 
-const SLOTS: Slot[] = ['helmet', 'amulet', 'weapon', 'armor', 'ring', 'boots']
+// two rings can be worn, so the ring slot appears twice
+const SLOTS: { slot: Slot; index: number }[] = [
+  { slot: 'helmet', index: 0 },
+  { slot: 'amulet', index: 0 },
+  { slot: 'weapon', index: 0 },
+  { slot: 'armor', index: 0 },
+  { slot: 'ring', index: 0 },
+  { slot: 'ring', index: 1 },
+  { slot: 'boots', index: 0 },
+]
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 
 export default function Overview({ character, onCharacter }: { character: Character; onCharacter: (c: Character) => void }) {
@@ -35,7 +44,7 @@ export default function Overview({ character, onCharacter }: { character: Charac
     }
   }
 
-  const worn = (slot: Slot) => items.find((i) => i.equipped && i.slot === slot)
+  const worn = (slot: Slot, index: number) => items.filter((i) => i.equipped && i.slot === slot)[index]
   const backpack = items.filter((i) => !i.equipped)
 
   return (
@@ -74,10 +83,10 @@ export default function Overview({ character, onCharacter }: { character: Charac
       <section className="card">
         <h3>Equipment</h3>
         <div className="slots">
-          {SLOTS.map((slot) => {
-            const item = worn(slot)
+          {SLOTS.map(({ slot, index }) => {
+            const item = worn(slot, index)
             return (
-              <div key={slot} className={`slot ${item ? 'filled' : ''}`}>
+              <div key={`${slot}${index}`} className={`slot ${item ? 'filled' : ''}`}>
                 <span className="muted">{slot}</span>
                 {item ? (
                   <>

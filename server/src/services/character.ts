@@ -12,6 +12,7 @@ export interface CharacterRow extends Stats {
   xp: number;
   gold: number;
   stat_points: number;
+  arena_rating: number;
   ap: number;
   ap_updated_at: Date;
   hp: number;
@@ -24,6 +25,14 @@ type Db = Pick<PoolClient, "query">;
 
 /** Loads the character (optionally locking its row) with AP and HP regenerated up to now. */
 export async function loadCharacter(userId: number, db: Db = pool, lock = false): Promise<CharacterRow | null> {
+  return loadCharacterBy("user_id", userId, db, lock);
+}
+
+/** Same as loadCharacter, but look the character up by its own id (used for arena opponents). */
+export const loadCharacterById = (characterId: number, db: Db = pool, lock = false) =>
+  loadCharacterBy("id", characterId, db, lock);
+
+async function loadCharacterBy(column: "user_id" | "id", value: number, db: Db, lock: boolean): Promise<CharacterRow | null> {
   const { rows } = await db.query(
     `SELECT c.*, b.*
        FROM characters c
@@ -37,14 +46,14 @@ export async function loadCharacter(userId: number, db: Db = pool, lock = false)
            FROM character_items ci JOIN items i ON i.id = ci.item_id
           WHERE ci.character_id = c.id AND ci.equipped
        ) b
-      WHERE c.user_id = $1${lock ? " FOR UPDATE OF c" : ""}`,
-    [userId],
+      WHERE c.${column} = $1${lock ? " FOR UPDATE OF c" : ""}`,
+    [value],
   );
   const r = rows[0];
   if (!r) return null;
   const bonus = Object.fromEntries(STAT_KEYS.map((k) => [k, r[`b_${k}`]])) as Stats;
   const c: CharacterRow = {
-    id: r.id, level: r.level, xp: r.xp, gold: r.gold, stat_points: r.stat_points,
+    id: r.id, level: r.level, xp: r.xp, gold: r.gold, stat_points: r.stat_points, arena_rating: r.arena_rating,
     strength: r.strength, dexterity: r.dexterity, constitution: r.constitution,
     charisma: r.charisma, intelligence: r.intelligence,
     ap: r.ap, ap_updated_at: r.ap_updated_at, hp: r.hp, hp_updated_at: r.hp_updated_at,
@@ -73,6 +82,7 @@ export function characterDto(c: CharacterRow) {
     hp: c.hp,
     maxHp,
     statPoints: c.stat_points,
+    arenaRating: c.arena_rating,
     stats: Object.fromEntries(STAT_KEYS.map((k) => [k, { base: c[k], bonus: c.bonus[k], total: t[k] }])),
     derived: {
       doubleAttackChance: doubleAttackChance(t.strength, t.charisma),

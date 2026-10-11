@@ -22,3 +22,15 @@ export const regenPctPerMinute = (con: number) => 0.015 + con * 0.0005;
 export const goldMultiplier = (cha: number) => 1 + cha * 0.005;
 export const xpMultiplier = (int: number) => 1 + int * 0.005;
 export const shopDiscount = (cha: number) => clamp(cha * 0.003, 0, 0.3);
+
+/** Gold price of training one base stat point; grows with the square of the current value. */
+export const trainingCost = (base: number) => Math.round(base * base * 0.5);
+
+/** How many items of a slot can be worn at once (two rings, everything else one). */
+export const slotCapacity = (slot: string) => (slot === "ring" ? 2 : 1);
+
+/** Elo rating change for the player: score is 1 (win), 0.5 (draw) or 0 (loss). */
+export function eloDelta(own: number, opponent: number, score: number, k = 32) {
+  const expected = 1 / (1 + 10 ** ((opponent - own) / 400));
+  return Math.round(k * (score - expected));
+}

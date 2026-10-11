@@ -27,7 +27,7 @@ characterRouter.post("/stats/allocate", async (req: AuthedRequest, res) => {
 
 characterRouter.get("/rankings", async (_req, res) => {
   const { rows } = await pool.query(
-    `SELECT u.username, c.level, c.xp, c.gold,
+    `SELECT u.username, c.level, c.xp, c.gold, c.arena_rating AS "arenaRating",
             (SELECT COUNT(*)::int FROM progress p WHERE p.character_id = c.id) AS "enemiesDefeated"
        FROM characters c JOIN users u ON u.id = c.user_id
       ORDER BY c.level DESC, c.xp DESC LIMIT 50`,
