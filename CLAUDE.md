@@ -27,3 +27,7 @@ Text-based browser RPG. Players spend attack points (AP) to fight enemies; battl
 
 ## Skills
 - task-observer lives in `.claude/skills/task-observer/`. Invoke it before the first tool call of any session and before proposing a plan.
+
+## Enemy knowledge
+- Enemy stats are hidden until the player attacks them (`enemy_knowledge.attacks`, counted for wins and losses). 1+ attacks: stat shown as a word relative to the player's own stat; exact numbers unlock per stat at 4/6/8/10/12 attacks (`NUMBER_REVEAL_ATTACKS` in `game/stats.ts`). The server only sends what the player may see (`StatView`); never put raw enemy stats in an API response.
+- Mob portraits are SVGs in `client/public/mobs/<slug>.svg` (slug = lowercased name, non-alphanumerics -> `-`). Replace a file with real art of the same name to change a portrait.

@@ -34,13 +34,19 @@ export interface Character {
   maxAp: number
 }
 
+export type StatView =
+  | { kind: 'hidden' }
+  | { kind: 'rating'; label: string; tone: 'easy' | 'even' | 'hard' }
+  | { kind: 'number'; value: number }
+
 export interface Enemy {
   id: number
   name: string
   level: number
   isBoss: boolean
-  strength: number
-  dexterity: number
+  image: string
+  attacks: number
+  stats: Record<StatKey, StatView>
   defeated: boolean
   unlocked: boolean
 }

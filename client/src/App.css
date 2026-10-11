@@ -57,3 +57,19 @@ button.secondary { background: none; }
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
 .day { text-align: center; padding: 8px 2px; border: 1px dashed #4a3f33; border-radius: 6px; font-size: 0.8em; color: #9c8f7d; }
 .day.done { border-style: solid; border-color: #8a6a2f; background: #5c431a; color: #f5e6c8; }
+
+.enemy-info { flex: 1; margin-left: 14px; }
+.portrait { position: relative; width: 72px; height: 72px; flex-shrink: 0; border-radius: 10px; outline-offset: 2px; cursor: help; }
+.portrait img { display: block; width: 72px; height: 72px; border-radius: 10px; }
+.portrait.boss-frame { box-shadow: 0 0 0 2px #f0c24a; }
+.portrait-fallback { width: 72px; height: 72px; border-radius: 10px; background: #3a2f23; display: grid; place-items: center; font-size: 2rem; }
+.enemy.locked .portrait img { filter: grayscale(1); }
+.tooltip { display: none; position: absolute; left: 80px; top: 0; z-index: 10; width: 240px; padding: 10px 12px; background: #120f0d; border: 1px solid #8a6a2f; border-radius: 8px; box-shadow: 0 6px 18px #000a; font-size: 0.85rem; }
+.portrait:hover .tooltip, .portrait:focus .tooltip, .portrait:focus-within .tooltip { display: block; }
+.tooltip-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #2c2620; }
+.tooltip-row { display: flex; justify-content: space-between; padding: 2px 0; }
+.tooltip-foot { margin-top: 8px; font-size: 0.78rem; }
+.tone-easy { color: #7fd37f; }
+.tone-even { color: #e8c75a; }
+.tone-hard { color: #e07070; }
+@media (max-width: 600px) { .tooltip { left: 0; top: 80px; } }

@@ -34,3 +34,32 @@ export function eloDelta(own: number, opponent: number, score: number, k = 32) {
   const expected = 1 / (1 + 10 ** ((opponent - own) / 400));
   return Math.round(k * (score - expected));
 }
+
+// ---- how much of an enemy's stats the player knows ----
+// 0 attacks: everything is hidden. From the 1st attack the stat is shown as a word relative to your own
+// stat. After enough attacks the exact number is revealed, one stat at a time.
+export const NUMBER_REVEAL_ATTACKS: Record<StatKey, number> = {
+  strength: 4, dexterity: 6, constitution: 8, charisma: 10, intelligence: 12,
+};
+
+export type StatView =
+  | { kind: "hidden" }
+  | { kind: "rating"; label: string; tone: "easy" | "even" | "hard" }
+  | { kind: "number"; value: number };
+
+/** Compares an enemy stat to the player's matching stat. */
+export function describeRatio(enemyValue: number, playerValue: number): { label: string; tone: "easy" | "even" | "hard" } {
+  const r = enemyValue / Math.max(1, playerValue);
+  if (r < 0.5) return { label: "Very weak", tone: "easy" };
+  if (r < 0.8) return { label: "Weak", tone: "easy" };
+  if (r <= 1.2) return { label: "Comparable", tone: "even" };
+  if (r <= 1.6) return { label: "Strong", tone: "hard" };
+  if (r <= 2.2) return { label: "Very strong", tone: "hard" };
+  return { label: "Overwhelming", tone: "hard" };
+}
+
+export function statView(stat: StatKey, attacks: number, enemyValue: number, playerValue: number): StatView {
+  if (attacks <= 0) return { kind: "hidden" };
+  if (attacks >= NUMBER_REVEAL_ATTACKS[stat]) return { kind: "number", value: enemyValue };
+  return { kind: "rating", ...describeRatio(enemyValue, playerValue) };
+}

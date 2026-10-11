@@ -4,7 +4,7 @@ import { pool } from "../db/pool.js";
 import { mulberry32, simulateBattle } from "../game/battle.js";
 import { AP_COST, applyXp, canAttack, canFight, hpAfterBattle } from "../game/rules.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
-import { STAT_POINTS_PER_LEVEL, goldMultiplier, xpMultiplier } from "../game/stats.js";
+import { NUMBER_REVEAL_ATTACKS, STAT_KEYS, STAT_POINTS_PER_LEVEL, goldMultiplier, statView, xpMultiplier } from "../game/stats.js";
 import { characterDto, loadCharacter, total, totalMaxHp, totalStats } from "../services/character.js";
 
 export const gameRouter = Router();
@@ -18,6 +18,11 @@ gameRouter.get("/areas", async (req: AuthedRequest, res) => {
   const defeated = new Set(
     (await pool.query("SELECT enemy_id FROM progress WHERE character_id = $1", [c.id])).rows.map((r) => r.enemy_id),
   );
+
+  const knowledge = new Map<number, number>(
+    (await pool.query("SELECT enemy_id, attacks FROM enemy_knowledge WHERE character_id = $1", [c.id])).rows.map((r) => [r.enemy_id, r.attacks]),
+  );
+  const mine = totalStats(c);
 
   res.json(
     areas.map((a) => {
@@ -33,8 +38,9 @@ gameRouter.get("/areas", async (req: AuthedRequest, res) => {
           name: e.name,
           level: e.level,
           isBoss: e.is_boss,
-          strength: e.strength,
-          dexterity: e.dexterity,
+          image: `/mobs/${e.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.svg`,
+          attacks: knowledge.get(e.id) ?? 0,
+          stats: Object.fromEntries(STAT_KEYS.map((k) => [k, statView(k, knowledge.get(e.id) ?? 0, e[k], mine[k])])),
           defeated: defeated.has(e.id),
           unlocked: canAttack({
             characterLevel: c.level,
@@ -101,6 +107,18 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
     let levelsGained = 0;
     const dropped: { name: string; slot: string }[] = [];
     const hp = hpAfterBattle(c.hp, result.enemyDamage);
+    // every attack, won or lost, teaches you more about this enemy
+    const attacks = (
+      await client.query(
+        `INSERT INTO enemy_knowledge (character_id, enemy_id, attacks) VALUES ($1,$2,1)
+         ON CONFLICT (character_id, enemy_id) DO UPDATE SET attacks = enemy_knowledge.attacks + 1 RETURNING attacks`,
+        [c.id, e.id],
+      )
+    ).rows[0].attacks as number;
+    if (attacks === 1) result.log.push(`You size up ${e.name}. Fight more to learn about them.`);
+    for (const k of STAT_KEYS) {
+      if (NUMBER_REVEAL_ATTACKS[k] === attacks) result.log.push(`You have studied ${e.name} enough to know their exact ${k}.`);
+    }
     result.log.push(`You lose ${c.hp - hp} health.`);
 
     if (result.won) {

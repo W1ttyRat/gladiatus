@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, type Area, type BattleResponse, type Character } from '../api'
 import Bar from '../components/Bar'
 import BattleLog from '../components/BattleLog'
+import MobPortrait from '../components/MobPortrait'
 
 export default function Battles({ character, onCharacter }: { character: Character; onCharacter: (c: Character) => void }) {
   const [areas, setAreas] = useState<Area[]>([])
@@ -55,9 +56,11 @@ export default function Battles({ character, onCharacter }: { character: Charact
           {woundedTooMuch && <p className="error">You are too wounded to fight. Rest until your health recovers.</p>}
           {area?.enemies.map((e) => (
             <div key={e.id} className={`card enemy ${e.unlocked ? '' : 'locked'}`}>
-              <div>
+              <MobPortrait enemy={e} />
+              <div className="enemy-info">
                 <strong>{e.name}</strong> {e.isBoss && <span className="boss">BOSS</span>}
-                <div className="muted">Level {e.level} · STR {e.strength} · DEX {e.dexterity} {e.defeated && '· defeated'}</div>
+                <div className="muted">Level {e.level}{e.defeated && ' · defeated'}</div>
+                <div className="muted">Hover the portrait to see what you know.</div>
               </div>
               <button disabled={!e.unlocked || character.ap < 1 || woundedTooMuch} onClick={() => attack(e.id)}>
                 {e.unlocked ? 'Attack (1 AP)' : 'Locked'}

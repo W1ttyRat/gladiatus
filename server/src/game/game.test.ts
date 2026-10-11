@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BATTLE_ROUNDS, mulberry32, simulateBattle } from "./battle.js";
 import { applyXp, canAttack, canFight, hpAfterBattle, regenAp, regenHp } from "./rules.js";
-import { eloDelta, slotCapacity, trainingCost, blockChance, damageReduction, doubleAttackChance, goldMultiplier, maxHpFor, regenPctPerMinute, shopDiscount } from "./stats.js";
+import { statView, eloDelta, slotCapacity, trainingCost, blockChance, damageReduction, doubleAttackChance, goldMultiplier, maxHpFor, regenPctPerMinute, shopDiscount } from "./stats.js";
 
 const hero = { name: "Hero", strength: 12, dexterity: 10, constitution: 10, charisma: 10, intelligence: 10 };
 const foe = { name: "Foe", strength: 6, dexterity: 8, constitution: 5, charisma: 5, intelligence: 5 };
@@ -107,5 +107,21 @@ describe("arena, training and slots", () => {
     expect(slotCapacity("ring")).toBe(2);
     expect(slotCapacity("weapon")).toBe(1);
     expect(slotCapacity("amulet")).toBe(1);
+  });
+});
+
+describe("enemy knowledge", () => {
+  it("hides everything before the first attack", () => {
+    expect(statView("strength", 0, 8, 12)).toEqual({ kind: "hidden" });
+  });
+  it("describes stats relative to the player until the number is unlocked", () => {
+    expect(statView("strength", 1, 4, 12)).toMatchObject({ kind: "rating", label: "Very weak", tone: "easy" });
+    expect(statView("strength", 1, 24, 12)).toMatchObject({ label: "Very strong", tone: "hard" });
+    expect(statView("strength", 3, 12, 12)).toMatchObject({ label: "Comparable", tone: "even" });
+  });
+  it("reveals exact numbers one stat at a time", () => {
+    expect(statView("strength", 4, 7, 12)).toEqual({ kind: "number", value: 7 });
+    expect(statView("dexterity", 4, 7, 12).kind).toBe("rating");
+    expect(statView("intelligence", 12, 7, 12)).toEqual({ kind: "number", value: 7 });
   });
 });

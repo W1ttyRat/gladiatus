@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Poacher">
+  <defs><radialGradient id="g" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#6fae6a"/><stop offset="1" stop-color="#1f4a2a"/></radialGradient></defs>
+  <rect width="128" height="128" rx="16" fill="url(#g)"/>
+  <rect x="2" y="2" width="124" height="124" rx="14" fill="none" stroke="#00000066" stroke-width="2"/>
+  <ellipse cx="64" cy="106" rx="34" ry="7" fill="#00000040"/>
+  <text x="64" y="66" font-size="68" text-anchor="middle" dominant-baseline="central" font-family="Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif">🏹</text>
+ </svg>
