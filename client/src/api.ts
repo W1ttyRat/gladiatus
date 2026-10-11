@@ -18,6 +18,7 @@ export interface Character {
   hp: number
   maxHp: number
   statPoints: number
+  packageCount: number
   arenaRating: number
   stats: Record<StatKey, { base: number; bonus: number; total: number }>
   derived: {
@@ -76,6 +77,23 @@ export interface InventoryItem extends ItemStats {
   slot: Slot
   equipped: boolean
   sellPrice: number
+}
+
+export interface PackageItem extends ItemStats {
+  id: number
+  name: string
+  slot: Slot
+  source: string
+  createdAt: string
+  expiresAt: string
+}
+
+export interface PackagesOverview {
+  character: Character
+  packages: PackageItem[]
+  inventory: InventoryItem[]
+  capacity: number
+  used: number
 }
 
 export interface ShopItem extends ItemStats {
@@ -184,6 +202,8 @@ export const api = {
   equip: (id: number) => post<CharInv>(`/inventory/${id}/equip`),
   unequip: (id: number) => post<CharInv>(`/inventory/${id}/unequip`),
   sell: (id: number) => post<CharInv>(`/inventory/${id}/sell`),
+  packages: () => request<PackagesOverview>('/packages'),
+  claimPackage: (id: number) => post<PackagesOverview>(`/packages/${id}/claim`),
   shop: (category: string) => request<ShopItem[]>(`/shop/${category}`),
   food: () => request<Food[]>('/shop/food'),
   buy: (itemId: number) => post<{ character: Character }>(`/shop/buy/${itemId}`),

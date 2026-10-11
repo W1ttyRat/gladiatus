@@ -60,3 +60,6 @@ export function canFight(hp: number, maxHp: number): boolean {
 export function hpAfterBattle(hp: number, damageTaken: number): number {
   return Math.max(1, hp - damageTaken);
 }
+
+/** Unequipped items a character can carry (packages do not count until they are moved in). */
+export const INVENTORY_CAPACITY = 30;

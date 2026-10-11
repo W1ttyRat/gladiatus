@@ -31,3 +31,8 @@ Text-based browser RPG. Players spend attack points (AP) to fight enemies; battl
 ## Enemy knowledge
 - Enemy stats are hidden until the player attacks them (`enemy_knowledge.attacks`, counted for wins and losses). 1+ attacks: stat shown as a word relative to the player's own stat; exact numbers unlock per stat at 4/6/8/10/12 attacks (`NUMBER_REVEAL_ATTACKS` in `game/stats.ts`). The server only sends what the player may see (`StatView`); never put raw enemy stats in an API response.
 - Mob portraits are SVGs in `client/public/mobs/<slug>.svg` (slug = lowercased name, non-alphanumerics -> `-`). Replace a file with real art of the same name to change a portrait.
+
+## Packages (loot inbox)
+- Battle drops and quest item rewards go into the `packages` table, not straight into the inventory. They expire after 7 days (`expires_at` default in `005_packages.sql`; expired rows are deleted when the list is read and ignored everywhere else).
+- The Packages page drags a package onto the inventory panel (HTML5 drag and drop, plus a Take button) which calls `POST /api/packages/:id/claim`. The inventory holds `INVENTORY_CAPACITY` (30) unequipped items; claiming or buying when full is refused.
+- Shop purchases still go directly to the inventory. `packageCount` is part of the character DTO and drives the sidebar badge.

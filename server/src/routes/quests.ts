@@ -76,7 +76,7 @@ questRouter.post("/quests/:id/claim", async (req: AuthedRequest, res) => {
       [lvl.level, lvl.xp, q.reward_gold, lvl.levelsGained * STAT_POINTS_PER_LEVEL, c.id],
     );
     if (q.reward_item_id) {
-      await client.query("INSERT INTO character_items (character_id, item_id) VALUES ($1,$2)", [c.id, q.reward_item_id]);
+      await client.query("INSERT INTO packages (character_id, item_id, source) VALUES ($1,$2,$3)", [c.id, q.reward_item_id, `Quest: ${q.name}`]);
     }
     await client.query("COMMIT");
     const fresh = (await loadCharacter(req.userId!))!;

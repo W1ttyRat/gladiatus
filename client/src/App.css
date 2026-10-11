@@ -73,3 +73,17 @@ button.secondary { background: none; }
 .tone-even { color: #e8c75a; }
 .tone-hard { color: #e07070; }
 @media (max-width: 600px) { .tooltip { left: 0; top: 80px; } }
+
+.badge { margin-left: 8px; background: #b84a4a; color: #fff; border-radius: 10px; padding: 0 7px; font-size: 0.75em; }
+.wallet .bar { margin: 6px 0 0; }
+.pkg-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 800px) { .pkg-layout { grid-template-columns: 1fr; } }
+.pkg { display: flex; gap: 10px; align-items: center; padding: 10px; margin-bottom: 8px; background: #2a2118; border: 1px solid #8a6a2f; border-radius: 8px; cursor: grab; user-select: none; }
+.pkg:active { cursor: grabbing; }
+.pkg.dragging { opacity: 0.4; }
+.pkg-icon { font-size: 1.8rem; }
+.pkg-body { flex: 1; min-width: 0; }
+.expiry-soon { color: #e07070; }
+.dropzone { border: 2px dashed #4a3f33; border-radius: 8px; padding: 12px; min-height: 160px; transition: background 0.15s, border-color 0.15s; }
+.dropzone.over { border-color: #7fd37f; background: #1d2a1d; }
+.dropzone.full { border-color: #b84a4a; }

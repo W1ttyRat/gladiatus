@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, getToken, setToken, type Character } from './api'
+import Bar from './components/Bar'
 import Arena from './pages/Arena'
 import Battles from './pages/Battles'
 import Daily from './pages/Daily'
+import Packages from './pages/Packages'
 import Overview from './pages/Overview'
 import Quests from './pages/Quests'
 import Rankings from './pages/Rankings'
@@ -42,12 +44,13 @@ function AuthForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-type Page = 'overview' | 'battles' | 'arena' | 'quests' | 'shops' | 'training' | 'daily' | 'rankings'
+type Page = 'overview' | 'battles' | 'arena' | 'packages' | 'quests' | 'shops' | 'training' | 'daily' | 'rankings'
 // Add new pages here; they show up in the sidebar top-down in this order.
 const NAV: { id: Page; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'battles', label: 'Battles' },
   { id: 'arena', label: 'Arena' },
+  { id: 'packages', label: 'Packages' },
   { id: 'quests', label: 'Quests' },
   { id: 'shops', label: 'Shops' },
   { id: 'training', label: 'Training' },
@@ -81,11 +84,14 @@ function Game({ onLogout }: { onLogout: () => void }) {
         <div className="wallet">
           <strong className="gold">{character.gold} gold</strong>
           <span className="muted">Level {character.level}</span>
+          <Bar label="HP" value={character.hp} max={character.maxHp} color="#b84a4a" />
+          {character.hp < character.maxHp && <span className="muted">Missing {character.maxHp - character.hp} HP</span>}
         </div>
         <nav>
           {NAV.map((n) => (
             <button key={n.id} className={n.id === page ? 'active' : ''} onClick={() => setPage(n.id)}>
               {n.label}
+              {n.id === 'packages' && character.packageCount > 0 && <span className="badge">{character.packageCount}</span>}
             </button>
           ))}
         </nav>
@@ -95,6 +101,7 @@ function Game({ onLogout }: { onLogout: () => void }) {
         {page === 'overview' && <Overview character={character} onCharacter={setCharacter} />}
         {page === 'battles' && <Battles character={character} onCharacter={setCharacter} />}
         {page === 'arena' && <Arena character={character} onCharacter={setCharacter} />}
+        {page === 'packages' && <Packages onCharacter={setCharacter} />}
         {page === 'quests' && <Quests onCharacter={setCharacter} />}
         {page === 'shops' && <Shops character={character} onCharacter={setCharacter} />}
         {page === 'training' && <Training character={character} onCharacter={setCharacter} />}

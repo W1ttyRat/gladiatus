@@ -19,6 +19,7 @@ export interface CharacterRow extends Stats {
   hp_updated_at: Date;
   bonus: Stats; // sum of equipped item bonuses
   bonus_hp: number;
+  package_count: number;
 }
 
 type Db = Pick<PoolClient, "query">;
@@ -42,7 +43,8 @@ async function loadCharacterBy(column: "user_id" | "id", value: number, db: Db, 
                 COALESCE(SUM(i.constitution),0)::int AS b_constitution,
                 COALESCE(SUM(i.charisma),0)::int AS b_charisma,
                 COALESCE(SUM(i.intelligence),0)::int AS b_intelligence,
-                COALESCE(SUM(i.hp),0)::int AS bonus_hp
+                COALESCE(SUM(i.hp),0)::int AS bonus_hp,
+                (SELECT COUNT(*)::int FROM packages p WHERE p.character_id = c.id AND p.expires_at > now()) AS package_count
            FROM character_items ci JOIN items i ON i.id = ci.item_id
           WHERE ci.character_id = c.id AND ci.equipped
        ) b
@@ -57,7 +59,7 @@ async function loadCharacterBy(column: "user_id" | "id", value: number, db: Db, 
     strength: r.strength, dexterity: r.dexterity, constitution: r.constitution,
     charisma: r.charisma, intelligence: r.intelligence,
     ap: r.ap, ap_updated_at: r.ap_updated_at, hp: r.hp, hp_updated_at: r.hp_updated_at,
-    bonus, bonus_hp: r.bonus_hp,
+    bonus, bonus_hp: r.bonus_hp, package_count: r.package_count,
   };
   const ap = regenAp(c.ap, c.ap_updated_at);
   const hp = regenHp(c.hp, totalMaxHp(c), c.hp_updated_at, new Date(), regenPctPerMinute(total(c, "constitution")));
@@ -82,6 +84,7 @@ export function characterDto(c: CharacterRow) {
     hp: c.hp,
     maxHp,
     statPoints: c.stat_points,
+    packageCount: c.package_count,
     arenaRating: c.arena_rating,
     stats: Object.fromEntries(STAT_KEYS.map((k) => [k, { base: c[k], bonus: c.bonus[k], total: t[k] }])),
     derived: {

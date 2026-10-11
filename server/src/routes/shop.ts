@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
+import { INVENTORY_CAPACITY } from "../game/rules.js";
 import { shopDiscount } from "../game/stats.js";
 import { characterDto, loadCharacter, total, totalMaxHp } from "../services/character.js";
 
@@ -74,6 +75,11 @@ shopRouter.post("/shop/buy/:itemId", async (req: AuthedRequest, res) => {
     if (c.gold < price) {
       await client.query("ROLLBACK");
       return res.status(400).json({ error: "Not enough gold" });
+    }
+    const used = (await client.query("SELECT COUNT(*)::int AS n FROM character_items WHERE character_id = $1 AND NOT equipped", [c.id])).rows[0].n;
+    if (used >= INVENTORY_CAPACITY) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Your inventory is full. Sell something first." });
     }
     await client.query("UPDATE characters SET gold = gold - $1 WHERE id = $2", [price, c.id]);
     await client.query("INSERT INTO character_items (character_id, item_id) VALUES ($1,$2)", [c.id, item.id]);

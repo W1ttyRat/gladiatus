@@ -156,9 +156,9 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
       // every drop in the loot table is rolled on its own, so a win can yield several items or none
       for (const d of drops) {
         if (Math.random() < d.chance) {
-          await client.query("INSERT INTO character_items (character_id, item_id) VALUES ($1,$2)", [c.id, d.item_id]);
+          await client.query("INSERT INTO packages (character_id, item_id, source) VALUES ($1,$2,$3)", [c.id, d.item_id, e.name]);
           dropped.push({ name: d.name, slot: d.slot });
-          result.log.push(`${e.name} dropped: ${d.name}!`);
+          result.log.push(`${e.name} dropped: ${d.name}! It was sent to your Packages.`);
         }
       }
     }

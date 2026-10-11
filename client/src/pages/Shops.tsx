@@ -65,6 +65,14 @@ export default function Shops({ character, onCharacter }: { character: Character
       {error && <p className="error">{error}</p>}
       {message && <p className="win">{message}</p>}
 
+      {tab === 'food' && (
+        <p className="muted">
+          {character.hp >= character.maxHp
+            ? 'You are at full health.'
+            : `Health ${character.hp}/${character.maxHp}: you are missing ${character.maxHp - character.hp} HP.`}
+        </p>
+      )}
+
       {tab !== 'food' &&
         items.map((i) => {
           const tooLow = character.level < i.minLevel
@@ -88,6 +96,12 @@ export default function Shops({ character, onCharacter }: { character: Character
               <div>
                 <strong>{f.name}</strong>
                 <div className="bonus">Restores {f.healPct}% of max health (+{f.healAmount} HP)</div>
+                {character.hp < character.maxHp && (
+                  <div className="muted">
+                    {Math.ceil((character.maxHp - character.hp) / f.healAmount)}x to heal fully (
+                    {Math.ceil((character.maxHp - character.hp) / f.healAmount) * f.price}g)
+                  </div>
+                )}
                 {tooLow && <div className="muted">Requires level {f.minLevel}</div>}
               </div>
               <button disabled={tooLow || character.gold < f.price || character.hp >= character.maxHp} onClick={() => eat(f)}>
