@@ -1,0 +1,22 @@
+main { max-width: 640px; margin: 0 auto; padding: 16px; text-align: left; }
+.card { background: #1e1b18; border: 1px solid #4a3f33; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.auth { display: flex; flex-direction: column; gap: 10px; margin-top: 10vh; }
+.auth h1 { margin: 0; text-align: center; }
+input { padding: 8px; border-radius: 6px; border: 1px solid #4a3f33; background: #120f0d; color: inherit; }
+button { padding: 8px 14px; border-radius: 6px; border: 1px solid #8a6a2f; background: #5c431a; color: #f5e6c8; cursor: pointer; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.link { background: none; border: none; color: #c9a45c; text-decoration: underline; }
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.tabs .active { background: #8a6a2f; }
+.enemy { display: flex; justify-content: space-between; align-items: center; }
+.enemy.locked { opacity: 0.5; }
+.muted { color: #9c8f7d; font-size: 0.85em; }
+.boss { background: #7a1f1f; padding: 1px 6px; border-radius: 4px; font-size: 0.75em; }
+.bar { margin: 6px 0; font-size: 0.85em; }
+.bar > div { background: #120f0d; height: 8px; border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: #c9a45c; }
+.log { min-height: 240px; max-height: 50vh; overflow-y: auto; font-family: monospace; }
+.log p { margin: 4px 0; }
+.row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.win { color: #7fd37f; }
+.lose, .error { color: #e07070; }
