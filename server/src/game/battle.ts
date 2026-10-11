@@ -1,7 +1,7 @@
-export interface Fighter {
+import { blockChance, critChance, damageReduction, doubleAttackChance, hitChance, type Stats } from "./stats.js";
+
+export interface Fighter extends Stats {
   name: string;
-  strength: number;
-  dexterity: number;
 }
 
 export interface BattleResult {
@@ -28,11 +28,11 @@ export function mulberry32(seed: number): Rng {
   };
 }
 
-function attack(att: Fighter, def: Fighter, rng: Rng): { dmg: number; line: string } {
-  const hitChance = Math.min(0.95, Math.max(0.5, 0.75 + (att.dexterity - def.dexterity) * 0.01));
-  if (rng() > hitChance) return { dmg: 0, line: `${att.name} swings at ${def.name} but misses.` };
-  const crit = rng() < 0.1;
-  const base = att.strength * (0.8 + rng() * 0.4);
+function strike(att: Fighter, def: Fighter, rng: Rng): { dmg: number; line: string } {
+  if (rng() > hitChance(att.dexterity, def.dexterity)) return { dmg: 0, line: `${att.name} swings at ${def.name} but misses.` };
+  if (rng() < blockChance(def.intelligence)) return { dmg: 0, line: `${def.name} blocks ${att.name}'s attack!` };
+  const crit = rng() < critChance(att.dexterity);
+  const base = att.strength * (0.8 + rng() * 0.4) * (1 - damageReduction(def.constitution));
   const dmg = Math.max(1, Math.round(crit ? base * 1.8 : base));
   return {
     dmg,
@@ -40,6 +40,20 @@ function attack(att: Fighter, def: Fighter, rng: Rng): { dmg: number; line: stri
       ? `${att.name} lands a CRITICAL blow on ${def.name} for ${dmg} damage!`
       : `${att.name} hits ${def.name} for ${dmg} damage.`,
   };
+}
+
+/** One attack turn: a normal strike, with a chance of a second one. Returns the total damage. */
+function attackTurn(att: Fighter, def: Fighter, rng: Rng, log: string[]): number {
+  let total = 0;
+  const first = strike(att, def, rng);
+  log.push(first.line);
+  total += first.dmg;
+  if (rng() < doubleAttackChance(att.strength, att.charisma)) {
+    const second = strike(att, def, rng);
+    log.push(`${att.name} attacks again! ${second.line}`);
+    total += second.dmg;
+  }
+  return total;
 }
 
 /** Exactly BATTLE_ROUNDS rounds; whoever dealt the most total damage wins (equal = draw, no reward). */
@@ -55,8 +69,7 @@ export function simulateBattle(player: Fighter, enemy: Fighter, rng: Rng): Battl
       ? [[player, enemy], [enemy, player]]
       : [[enemy, player], [player, enemy]];
     for (const [att, def] of order) {
-      const { dmg, line } = attack(att, def, rng);
-      log.push(line);
+      const dmg = attackTurn(att, def, rng, log);
       if (att === player) playerDamage += dmg;
       else enemyDamage += dmg;
     }

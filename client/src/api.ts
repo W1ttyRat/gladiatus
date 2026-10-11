@@ -1,3 +1,14 @@
+export const STAT_KEYS = ['strength', 'dexterity', 'constitution', 'charisma', 'intelligence'] as const
+export type StatKey = (typeof STAT_KEYS)[number]
+
+export const STAT_INFO: Record<StatKey, { label: string; help: string }> = {
+  strength: { label: 'Strength', help: 'More damage and a higher chance of a double attack' },
+  dexterity: { label: 'Dexterity', help: 'Hit more often and land more critical hits' },
+  constitution: { label: 'Constitution', help: 'More max health, less damage taken, faster regeneration' },
+  charisma: { label: 'Charisma', help: 'Chance of a double attack, more gold from fights, cheaper shops' },
+  intelligence: { label: 'Intelligence', help: 'Chance to block a hit completely, more XP from fights' },
+}
+
 export interface Character {
   id: number
   level: number
@@ -6,9 +17,18 @@ export interface Character {
   gold: number
   hp: number
   maxHp: number
-  strength: number
-  dexterity: number
-  bonus: { strength: number; dexterity: number; hp: number }
+  statPoints: number
+  stats: Record<StatKey, { base: number; bonus: number; total: number }>
+  derived: {
+    doubleAttackChance: number
+    critChance: number
+    blockChance: number
+    damageReduction: number
+    regenPerMinute: number
+    goldBonus: number
+    xpBonus: number
+    shopDiscount: number
+  }
   ap: number
   maxAp: number
 }
@@ -32,16 +52,64 @@ export interface Area {
   enemies: Enemy[]
 }
 
-export type Slot = 'weapon' | 'helmet' | 'armor' | 'boots'
+export type Slot = 'weapon' | 'helmet' | 'armor' | 'boots' | 'ring' | 'amulet'
 
-export interface InventoryItem {
+export interface ItemStats {
+  strength: number
+  dexterity: number
+  constitution: number
+  charisma: number
+  intelligence: number
+  hp: number
+}
+
+export interface InventoryItem extends ItemStats {
   id: number
   name: string
   slot: Slot
-  strength: number
-  dexterity: number
-  hp: number
   equipped: boolean
+  sellPrice: number
+}
+
+export interface ShopItem extends ItemStats {
+  id: number
+  name: string
+  slot: Slot
+  minLevel: number
+  price: number
+}
+
+export interface Food {
+  id: number
+  name: string
+  healPct: number
+  healAmount: number
+  minLevel: number
+  price: number
+}
+
+export interface Quest {
+  id: number
+  name: string
+  description: string
+  type: string
+  targetEnemy: string | null
+  targetCount: number
+  minLevel: number
+  rewardGold: number
+  rewardXp: number
+  rewardItem: string | null
+  status: 'available' | 'active' | 'completed' | 'claimed'
+  progress: number
+  locked: boolean
+}
+
+export interface RankingRow {
+  username: string
+  level: number
+  xp: number
+  gold: number
+  enemiesDefeated: number
 }
 
 export interface BattleResponse {
@@ -75,17 +143,28 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T
 }
 
+const post = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) })
+
+type CharInv = { character: Character; inventory: InventoryItem[] }
+
 export const api = {
-  login: (username: string, password: string) =>
-    request<{ token: string }>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
-  register: (username: string, password: string) =>
-    request<{ token: string }>('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  login: (username: string, password: string) => post<{ token: string }>('/auth/login', { username, password }),
+  register: (username: string, password: string) => post<{ token: string }>('/auth/register', { username, password }),
   me: () => request<Character>('/auth/me'),
   areas: () => request<Area[]>('/areas'),
+  attack: (enemyId: number) => post<BattleResponse>(`/battle/${enemyId}`),
+  allocate: (stat: StatKey, amount = 1) => post<Character>('/stats/allocate', { stat, amount }),
   inventory: () => request<InventoryItem[]>('/inventory'),
-  equip: (id: number) =>
-    request<{ character: Character; inventory: InventoryItem[] }>(`/inventory/${id}/equip`, { method: 'POST' }),
-  unequip: (id: number) =>
-    request<{ character: Character; inventory: InventoryItem[] }>(`/inventory/${id}/unequip`, { method: 'POST' }),
-  attack: (enemyId: number) => request<BattleResponse>(`/battle/${enemyId}`, { method: 'POST' }),
+  equip: (id: number) => post<CharInv>(`/inventory/${id}/equip`),
+  unequip: (id: number) => post<CharInv>(`/inventory/${id}/unequip`),
+  sell: (id: number) => post<CharInv>(`/inventory/${id}/sell`),
+  shop: (category: string) => request<ShopItem[]>(`/shop/${category}`),
+  food: () => request<Food[]>('/shop/food'),
+  buy: (itemId: number) => post<{ character: Character }>(`/shop/buy/${itemId}`),
+  eat: (foodId: number) => post<{ character: Character; healed: number }>(`/shop/eat/${foodId}`),
+  quests: () => request<Quest[]>('/quests'),
+  acceptQuest: (id: number) => post<{ quests: Quest[] }>(`/quests/${id}/accept`),
+  claimQuest: (id: number) => post<{ character: Character; quests: Quest[]; levelsGained: number }>(`/quests/${id}/claim`),
+  rankings: () => request<RankingRow[]>('/rankings'),
 }

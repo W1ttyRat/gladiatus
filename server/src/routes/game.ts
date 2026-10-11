@@ -4,7 +4,8 @@ import { pool } from "../db/pool.js";
 import { mulberry32, simulateBattle } from "../game/battle.js";
 import { AP_COST, applyXp, canAttack, canFight, hpAfterBattle } from "../game/rules.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
-import { characterDto, loadCharacter, totalMaxHp } from "../services/character.js";
+import { STAT_POINTS_PER_LEVEL, goldMultiplier, xpMultiplier } from "../game/stats.js";
+import { characterDto, loadCharacter, total, totalMaxHp, totalStats } from "../services/character.js";
 
 export const gameRouter = Router();
 gameRouter.use(requireAuth);
@@ -88,8 +89,11 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
     }
 
     const result = simulateBattle(
-      { name: "You", strength: c.strength + c.bonus_str, dexterity: c.dexterity + c.bonus_dex },
-      { name: e.name, strength: e.strength, dexterity: e.dexterity },
+      { name: "You", ...totalStats(c) },
+      {
+        name: e.name, strength: e.strength, dexterity: e.dexterity,
+        constitution: e.constitution, charisma: e.charisma, intelligence: e.intelligence,
+      },
       mulberry32(randomInt(2 ** 31)),
     );
 
@@ -100,11 +104,30 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
     result.log.push(`You lose ${c.hp - hp} health.`);
 
     if (result.won) {
-      ({ level, xp, levelsGained } = applyXp(c.level, c.xp, e.xp_reward));
-      gold += e.gold_reward;
+      // intelligence boosts XP, charisma boosts gold
+      const xpGain = Math.round(e.xp_reward * xpMultiplier(total(c, "intelligence")));
+      const goldGain = Math.round(e.gold_reward * goldMultiplier(total(c, "charisma")));
+      ({ level, xp, levelsGained } = applyXp(c.level, c.xp, xpGain));
+      gold += goldGain;
       await client.query("INSERT INTO progress (character_id, enemy_id) VALUES ($1,$2) ON CONFLICT DO NOTHING", [c.id, e.id]);
-      result.log.push(`You gain ${e.xp_reward} XP and ${e.gold_reward} gold.`);
-      if (levelsGained) result.log.push(`LEVEL UP! You are now level ${level}.`);
+      result.log.push(`You gain ${xpGain} XP and ${goldGain} gold.`);
+      if (levelsGained) {
+        result.log.push(`LEVEL UP! You are now level ${level} and gained ${levelsGained * STAT_POINTS_PER_LEVEL} stat points.`);
+      }
+
+      // advance matching active quests
+      const quests = await client.query(
+        `UPDATE character_quests cq
+            SET progress = LEAST(q.target_count, cq.progress + 1),
+                status = CASE WHEN cq.progress + 1 >= q.target_count THEN 'completed' ELSE 'active' END
+           FROM quests q
+          WHERE cq.quest_id = q.id AND cq.character_id = $1 AND cq.status = 'active'
+            AND (q.type = 'defeat_any' OR (q.type = 'defeat_boss' AND $2::boolean)
+                 OR (q.type = 'defeat_enemy' AND q.target_enemy_id = $3))
+        RETURNING q.name, cq.status`,
+        [c.id, e.is_boss, e.id],
+      );
+      for (const q of quests.rows) if (q.status === "completed") result.log.push(`Quest complete: ${q.name}! Claim your reward in the Quests tab.`);
 
       const drops = (
         await client.query(
@@ -124,8 +147,10 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
     // Store the regenerated AP/HP with their timestamps so regeneration is neither lost nor double counted.
     // HP regeneration restarts from "now" only when damage was actually taken.
     await client.query(
-      `UPDATE characters SET level=$1, xp=$2, gold=$3, ap=$4, ap_updated_at=$5, hp=$6, hp_updated_at=$7 WHERE id=$8`,
-      [level, xp, gold, c.ap - AP_COST, c.ap_updated_at, hp, hp === c.hp ? c.hp_updated_at : new Date(), c.id],
+      `UPDATE characters SET level=$1, xp=$2, gold=$3, ap=$4, ap_updated_at=$5, hp=$6, hp_updated_at=$7,
+              stat_points = stat_points + $8 WHERE id=$9`,
+      [level, xp, gold, c.ap - AP_COST, c.ap_updated_at, hp, hp === c.hp ? c.hp_updated_at : new Date(),
+       levelsGained * STAT_POINTS_PER_LEVEL, c.id],
     );
     await client.query("INSERT INTO battle_logs (character_id, enemy_id, won, log) VALUES ($1,$2,$3,$4)", [
       c.id, e.id, result.won, JSON.stringify(result.log),

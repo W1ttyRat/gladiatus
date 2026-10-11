@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { BATTLE_ROUNDS, mulberry32, simulateBattle } from "./battle.js";
 import { applyXp, canAttack, canFight, hpAfterBattle, regenAp, regenHp } from "./rules.js";
+import { blockChance, damageReduction, doubleAttackChance, goldMultiplier, maxHpFor, regenPctPerMinute, shopDiscount } from "./stats.js";
 
-const hero = { name: "Hero", strength: 12, dexterity: 10 };
-const foe = { name: "Foe", strength: 6, dexterity: 8 };
+const hero = { name: "Hero", strength: 12, dexterity: 10, constitution: 10, charisma: 10, intelligence: 10 };
+const foe = { name: "Foe", strength: 6, dexterity: 8, constitution: 5, charisma: 5, intelligence: 5 };
 
 describe("simulateBattle", () => {
   it("is deterministic for a given seed", () => {
@@ -63,5 +64,30 @@ describe("rules", () => {
     expect(canFight(9, 100)).toBe(false);
     expect(canFight(10, 100)).toBe(true);
     expect(hpAfterBattle(20, 500)).toBe(1);
+  });
+});
+
+describe("stat formulas", () => {
+  it("each stat has its effect and caps", () => {
+    expect(maxHpFor(10, 0)).toBe(200);
+    expect(maxHpFor(20, 30)).toBe(330);
+    expect(doubleAttackChance(1000, 1000)).toBe(0.4);
+    expect(blockChance(0)).toBe(0);
+    expect(damageReduction(1000)).toBe(0.5);
+    expect(shopDiscount(10)).toBeCloseTo(0.03);
+    expect(goldMultiplier(10)).toBeCloseTo(1.05);
+  });
+  it("more strength means more total damage", () => {
+    const sum = (str: number) => {
+      let t = 0;
+      for (let s = 1; s <= 200; s++) t += simulateBattle({ ...hero, strength: str }, foe, mulberry32(s)).playerDamage;
+      return t;
+    };
+    expect(sum(30)).toBeGreaterThan(sum(10));
+  });
+  it("regen percentage scales with constitution", () => {
+    const t = new Date("2026-01-01T00:00:00Z");
+    const later = new Date(t.getTime() + 60_000);
+    expect(regenHp(0, 1000, t, later, regenPctPerMinute(40)).hp).toBeGreaterThan(regenHp(0, 1000, t, later, regenPctPerMinute(10)).hp);
   });
 });

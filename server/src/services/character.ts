@@ -1,21 +1,22 @@
 import type { PoolClient } from "pg";
 import { pool } from "../db/pool.js";
 import { MAX_AP, regenAp, regenHp, xpForNextLevel } from "../game/rules.js";
+import {
+  STAT_KEYS, blockChance, critChance, damageReduction, doubleAttackChance, goldMultiplier, maxHpFor,
+  regenPctPerMinute, shopDiscount, xpMultiplier, type StatKey, type Stats,
+} from "../game/stats.js";
 
-export interface CharacterRow {
+export interface CharacterRow extends Stats {
   id: number;
   level: number;
   xp: number;
   gold: number;
-  max_hp: number; // base, without equipment
-  strength: number; // base
-  dexterity: number; // base
+  stat_points: number;
   ap: number;
   ap_updated_at: Date;
   hp: number;
   hp_updated_at: Date;
-  bonus_str: number;
-  bonus_dex: number;
+  bonus: Stats; // sum of equipped item bonuses
   bonus_hp: number;
 }
 
@@ -23,12 +24,15 @@ type Db = Pick<PoolClient, "query">;
 
 /** Loads the character (optionally locking its row) with AP and HP regenerated up to now. */
 export async function loadCharacter(userId: number, db: Db = pool, lock = false): Promise<CharacterRow | null> {
-  const { rows } = await db.query<CharacterRow>(
-    `SELECT c.*, b.bonus_str, b.bonus_dex, b.bonus_hp
+  const { rows } = await db.query(
+    `SELECT c.*, b.*
        FROM characters c
        CROSS JOIN LATERAL (
-         SELECT COALESCE(SUM(i.strength),0)::int AS bonus_str,
-                COALESCE(SUM(i.dexterity),0)::int AS bonus_dex,
+         SELECT COALESCE(SUM(i.strength),0)::int AS b_strength,
+                COALESCE(SUM(i.dexterity),0)::int AS b_dexterity,
+                COALESCE(SUM(i.constitution),0)::int AS b_constitution,
+                COALESCE(SUM(i.charisma),0)::int AS b_charisma,
+                COALESCE(SUM(i.intelligence),0)::int AS b_intelligence,
                 COALESCE(SUM(i.hp),0)::int AS bonus_hp
            FROM character_items ci JOIN items i ON i.id = ci.item_id
           WHERE ci.character_id = c.id AND ci.equipped
@@ -36,16 +40,30 @@ export async function loadCharacter(userId: number, db: Db = pool, lock = false)
       WHERE c.user_id = $1${lock ? " FOR UPDATE OF c" : ""}`,
     [userId],
   );
-  const c = rows[0];
-  if (!c) return null;
+  const r = rows[0];
+  if (!r) return null;
+  const bonus = Object.fromEntries(STAT_KEYS.map((k) => [k, r[`b_${k}`]])) as Stats;
+  const c: CharacterRow = {
+    id: r.id, level: r.level, xp: r.xp, gold: r.gold, stat_points: r.stat_points,
+    strength: r.strength, dexterity: r.dexterity, constitution: r.constitution,
+    charisma: r.charisma, intelligence: r.intelligence,
+    ap: r.ap, ap_updated_at: r.ap_updated_at, hp: r.hp, hp_updated_at: r.hp_updated_at,
+    bonus, bonus_hp: r.bonus_hp,
+  };
   const ap = regenAp(c.ap, c.ap_updated_at);
-  const hp = regenHp(c.hp, c.max_hp + c.bonus_hp, c.hp_updated_at);
+  const hp = regenHp(c.hp, totalMaxHp(c), c.hp_updated_at, new Date(), regenPctPerMinute(total(c, "constitution")));
   return { ...c, ap: ap.ap, ap_updated_at: ap.updatedAt, hp: hp.hp, hp_updated_at: hp.updatedAt };
 }
 
-export const totalMaxHp = (c: CharacterRow) => c.max_hp + c.bonus_hp;
+/** Base stat plus equipment bonus. */
+export const total = (c: CharacterRow, k: StatKey) => c[k] + c.bonus[k];
+export const totalStats = (c: CharacterRow): Stats =>
+  Object.fromEntries(STAT_KEYS.map((k) => [k, total(c, k)])) as Stats;
+export const totalMaxHp = (c: CharacterRow) => maxHpFor(total(c, "constitution"), c.bonus_hp);
 
 export function characterDto(c: CharacterRow) {
+  const t = totalStats(c);
+  const maxHp = totalMaxHp(c);
   return {
     id: c.id,
     level: c.level,
@@ -53,10 +71,19 @@ export function characterDto(c: CharacterRow) {
     xpToNext: xpForNextLevel(c.level),
     gold: c.gold,
     hp: c.hp,
-    maxHp: totalMaxHp(c),
-    strength: c.strength + c.bonus_str,
-    dexterity: c.dexterity + c.bonus_dex,
-    bonus: { strength: c.bonus_str, dexterity: c.bonus_dex, hp: c.bonus_hp },
+    maxHp,
+    statPoints: c.stat_points,
+    stats: Object.fromEntries(STAT_KEYS.map((k) => [k, { base: c[k], bonus: c.bonus[k], total: t[k] }])),
+    derived: {
+      doubleAttackChance: doubleAttackChance(t.strength, t.charisma),
+      critChance: critChance(t.dexterity),
+      blockChance: blockChance(t.intelligence),
+      damageReduction: damageReduction(t.constitution),
+      regenPerMinute: Math.max(1, Math.floor(maxHp * regenPctPerMinute(t.constitution))),
+      goldBonus: goldMultiplier(t.charisma) - 1,
+      xpBonus: xpMultiplier(t.intelligence) - 1,
+      shopDiscount: shopDiscount(t.charisma),
+    },
     ap: c.ap,
     maxAp: MAX_AP,
   };

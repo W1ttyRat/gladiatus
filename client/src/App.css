@@ -41,3 +41,16 @@ button.link { background: none; border: none; color: #c9a45c; text-decoration: u
 .item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #2c2620; }
 .item:first-of-type { border-top: none; }
 @media (max-width: 600px) { .layout { flex-direction: column; } .sidebar { width: auto; border-right: none; border-bottom: 1px solid #4a3f33; } .sidebar nav { flex-direction: row; } }
+
+.wallet { display: flex; flex-direction: column; padding: 8px 10px; background: #120f0d; border: 1px solid #4a3f33; border-radius: 6px; }
+.gold { color: #f0c24a; }
+.statrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid #2c2620; }
+.statrow:first-of-type { border-top: none; }
+.statrow .muted { display: block; font-size: 0.8em; }
+.statval { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.statval button { padding: 2px 10px; }
+.derived { margin-top: 10px; font-size: 0.8em; }
+.actions { display: flex; gap: 8px; }
+button.secondary { background: none; }
+.ranking { width: 100%; border-collapse: collapse; }
+.ranking th, .ranking td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #2c2620; }

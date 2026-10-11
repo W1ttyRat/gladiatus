@@ -42,12 +42,12 @@ export function applyXp(level: number, xp: number, gained: number): { level: num
   return { level: l, xp: x, levelsGained: l - level };
 }
 
-/** HP regenerates 2% of max HP per full minute (at least 1). */
-export function regenHp(hp: number, maxHp: number, updatedAt: Date, now = new Date()): { hp: number; updatedAt: Date } {
+/** HP regenerates passively: a share of max HP per full minute (at least 1 HP). */
+export function regenHp(hp: number, maxHp: number, updatedAt: Date, now = new Date(), pctPerMinute = 0.02): { hp: number; updatedAt: Date } {
   if (hp >= maxHp) return { hp: maxHp, updatedAt: now };
   const minutes = Math.floor((now.getTime() - updatedAt.getTime()) / 60_000);
   if (minutes <= 0) return { hp, updatedAt };
-  const newHp = Math.min(maxHp, hp + minutes * Math.max(1, Math.floor(maxHp * 0.02)));
+  const newHp = Math.min(maxHp, hp + minutes * Math.max(1, Math.floor(maxHp * pctPerMinute)));
   return { hp: newHp, updatedAt: newHp >= maxHp ? now : new Date(updatedAt.getTime() + minutes * 60_000) };
 }
 
