@@ -4,7 +4,7 @@
 1. In pgAdmin create an empty database named `gladiatus`.
 2. `copy server\.env.example server\.env` and fill in your Postgres password and a JWT secret.
 3. `npm install`
-4. `npm run migrate -w server` then `npm run seed -w server`
+4. `npm run migrate -w server` then `npm run seed -w server` (run the seed before registering, so new accounts get the starter sword; re-run both after pulling updates)
 5. `npm run dev` and open http://localhost:5173
 
 ## Optional Claude Code tooling (not installed by default)

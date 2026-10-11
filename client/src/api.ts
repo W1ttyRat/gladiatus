@@ -4,9 +4,11 @@ export interface Character {
   xp: number
   xpToNext: number
   gold: number
+  hp: number
   maxHp: number
   strength: number
   dexterity: number
+  bonus: { strength: number; dexterity: number; hp: number }
   ap: number
   maxAp: number
 }
@@ -16,7 +18,8 @@ export interface Enemy {
   name: string
   level: number
   isBoss: boolean
-  maxHp: number
+  strength: number
+  dexterity: number
   defeated: boolean
   unlocked: boolean
 }
@@ -29,8 +32,24 @@ export interface Area {
   enemies: Enemy[]
 }
 
+export type Slot = 'weapon' | 'helmet' | 'armor' | 'boots'
+
+export interface InventoryItem {
+  id: number
+  name: string
+  slot: Slot
+  strength: number
+  dexterity: number
+  hp: number
+  equipped: boolean
+}
+
 export interface BattleResponse {
   won: boolean
+  draw: boolean
+  playerDamage: number
+  enemyDamage: number
+  drop: { name: string; slot: string } | null
   log: string[]
   levelsGained: number
   character: Character
@@ -63,5 +82,10 @@ export const api = {
     request<{ token: string }>('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) }),
   me: () => request<Character>('/auth/me'),
   areas: () => request<Area[]>('/areas'),
+  inventory: () => request<InventoryItem[]>('/inventory'),
+  equip: (id: number) =>
+    request<{ character: Character; inventory: InventoryItem[] }>(`/inventory/${id}/equip`, { method: 'POST' }),
+  unequip: (id: number) =>
+    request<{ character: Character; inventory: InventoryItem[] }>(`/inventory/${id}/unequip`, { method: 'POST' }),
   attack: (enemyId: number) => request<BattleResponse>(`/battle/${enemyId}`, { method: 'POST' }),
 }

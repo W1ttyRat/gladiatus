@@ -24,7 +24,9 @@ authRouter.post("/register", async (req, res) => {
     await client.query("BEGIN");
     const hash = await bcrypt.hash(password, 10);
     const u = await client.query("INSERT INTO users (username, password_hash) VALUES ($1,$2) RETURNING id", [username, hash]);
-    await client.query("INSERT INTO characters (user_id) VALUES ($1)", [u.rows[0].id]);
+    const ch = await client.query("INSERT INTO characters (user_id) VALUES ($1) RETURNING id", [u.rows[0].id]);
+    // starter weapon, already equipped (needs `npm run seed` to have run)
+    await client.query("INSERT INTO character_items (character_id, item_id, equipped) SELECT $1, id, true FROM items WHERE name = $2", [ch.rows[0].id, "Rusty Sword"]);
     await client.query("COMMIT");
     res.status(201).json({ token: sign(u.rows[0].id) });
   } catch (e: any) {

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, getToken, setToken, type Area, type BattleResponse, type Character } from './api'
+import { api, getToken, setToken, type Character } from './api'
+import Battles from './pages/Battles'
+import Overview from './pages/Overview'
 import './App.css'
 
 function AuthForm({ onDone }: { onDone: () => void }) {
@@ -34,121 +36,43 @@ function AuthForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-function Bar({ label, value, max }: { label: string; value: number; max: number }) {
-  return (
-    <div className="bar">
-      <span>{label} {value}/{max}</span>
-      <div><i style={{ width: `${Math.min(100, (value / max) * 100)}%` }} /></div>
-    </div>
-  )
-}
-
-function BattleLog({ result, onClose }: { result: BattleResponse; onClose: () => void }) {
-  const [shown, setShown] = useState(0)
-  const done = shown >= result.log.length
-
-  useEffect(() => {
-    if (done) return
-    const t = setTimeout(() => setShown((n) => n + 1), 350)
-    return () => clearTimeout(t)
-  }, [shown, done])
-
-  return (
-    <div className="card battle">
-      <div className="log">
-        {result.log.slice(0, shown).map((line, i) => (
-          <p key={i}>{line}</p>
-        ))}
-      </div>
-      <div className="row">
-        {!done && <button onClick={() => setShown(result.log.length)}>Skip</button>}
-        {done && (
-          <>
-            <strong className={result.won ? 'win' : 'lose'}>{result.won ? 'Victory!' : 'Defeat'}</strong>
-            <button onClick={onClose}>Continue</button>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
+type Page = 'overview' | 'battles'
+// Add new pages here; they show up in the sidebar top-down in this order.
+const NAV: { id: Page; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'battles', label: 'Battles' },
+]
 
 function Game({ onLogout }: { onLogout: () => void }) {
   const [character, setCharacter] = useState<Character | null>(null)
-  const [areas, setAreas] = useState<Area[]>([])
-  const [areaId, setAreaId] = useState<number | null>(null)
-  const [battle, setBattle] = useState<BattleResponse | null>(null)
-  const [error, setError] = useState('')
-
-  const refresh = useCallback(async () => {
-    try {
-      const [c, a] = await Promise.all([api.me(), api.areas()])
-      setCharacter(c)
-      setAreas(a)
-      setAreaId((id) => id ?? a[0]?.id ?? null)
-    } catch {
-      setToken(null)
-      onLogout()
-    }
-  }, [onLogout])
+  const [page, setPage] = useState<Page>('overview')
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
-
-  async function attack(enemyId: number) {
-    setError('')
-    try {
-      setBattle(await api.attack(enemyId))
-    } catch (err) {
-      setError((err as Error).message)
-    }
-  }
-
-  async function closeBattle() {
-    setBattle(null)
-    await refresh()
-  }
+    api.me().then(setCharacter).catch(() => {
+      setToken(null)
+      onLogout()
+    })
+  }, [onLogout])
 
   if (!character) return <p>Loading...</p>
-  const area = areas.find((a) => a.id === areaId)
 
   return (
-    <div className="game">
-      <header className="card">
-        <div>
-          <strong>Level {character.level}</strong> · {character.gold} gold · STR {character.strength} · DEX {character.dexterity} · HP {character.maxHp}
-        </div>
-        <Bar label="XP" value={character.xp} max={character.xpToNext} />
-        <Bar label="Attack points" value={character.ap} max={character.maxAp} />
-        <button className="link" onClick={() => { setToken(null); onLogout() }}>Log out</button>
-      </header>
-
-      {battle ? (
-        <BattleLog result={battle} onClose={closeBattle} />
-      ) : (
-        <>
-          <nav className="tabs">
-            {areas.map((a) => (
-              <button key={a.id} className={a.id === areaId ? 'active' : ''} disabled={!a.unlocked} onClick={() => setAreaId(a.id)}>
-                {a.name} {!a.unlocked && `(Lv ${a.minLevel})`}
-              </button>
-            ))}
-          </nav>
-          {error && <p className="error">{error}</p>}
-          {area?.enemies.map((e) => (
-            <div key={e.id} className={`card enemy ${e.unlocked ? '' : 'locked'}`}>
-              <div>
-                <strong>{e.name}</strong> {e.isBoss && <span className="boss">BOSS</span>}
-                <div className="muted">Level {e.level} · {e.maxHp} HP {e.defeated && '· defeated'}</div>
-              </div>
-              <button disabled={!e.unlocked || character.ap < 1} onClick={() => attack(e.id)}>
-                {e.unlocked ? 'Attack (1 AP)' : 'Locked'}
-              </button>
-            </div>
+    <div className="layout">
+      <aside className="sidebar">
+        <h1>Gladiatus</h1>
+        <nav>
+          {NAV.map((n) => (
+            <button key={n.id} className={n.id === page ? 'active' : ''} onClick={() => setPage(n.id)}>
+              {n.label}
+            </button>
           ))}
-        </>
-      )}
+        </nav>
+        <button className="link" onClick={() => { setToken(null); onLogout() }}>Log out</button>
+      </aside>
+      <main className="content">
+        {page === 'overview' && <Overview character={character} onCharacter={setCharacter} />}
+        {page === 'battles' && <Battles character={character} onCharacter={setCharacter} />}
+      </main>
     </div>
   )
 }
@@ -156,9 +80,5 @@ function Game({ onLogout }: { onLogout: () => void }) {
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(!!getToken())
   const logout = useCallback(() => setLoggedIn(false), [])
-  return (
-    <main>
-      {loggedIn ? <Game onLogout={logout} /> : <AuthForm onDone={() => setLoggedIn(true)} />}
-    </main>
-  )
+  return loggedIn ? <Game onLogout={logout} /> : <main className="auth-wrap"><AuthForm onDone={() => setLoggedIn(true)} /></main>
 }

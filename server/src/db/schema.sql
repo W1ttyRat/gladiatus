@@ -55,3 +55,31 @@ CREATE TABLE IF NOT EXISTS battle_logs (
   log JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- current HP (regenerates lazily, like AP)
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS hp INT NOT NULL DEFAULT 100;
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS hp_updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+CREATE TABLE IF NOT EXISTS items (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  slot TEXT NOT NULL CHECK (slot IN ('weapon','helmet','armor','boots')),
+  strength INT NOT NULL DEFAULT 0,
+  dexterity INT NOT NULL DEFAULT 0,
+  hp INT NOT NULL DEFAULT 0
+);
+
+-- one row per owned item; equipped = currently worn
+CREATE TABLE IF NOT EXISTS character_items (
+  id SERIAL PRIMARY KEY,
+  character_id INT NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+  item_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  equipped BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS enemy_drops (
+  enemy_id INT NOT NULL REFERENCES enemies(id) ON DELETE CASCADE,
+  item_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  chance REAL NOT NULL,
+  PRIMARY KEY (enemy_id, item_id)
+);

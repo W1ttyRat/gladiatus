@@ -17,6 +17,8 @@ Text-based browser RPG. Players spend attack points (AP) to fight enemies; battl
 - Enemy N is attackable only after enemy N-1 in the same area was beaten at least once (`progress` table).
 - Areas unlock by character level (`areas.min_level`).
 - Attacking costs 1 AP; AP regenerates lazily (computed from `ap_updated_at`, no cron).
+- Battles last exactly 10 rounds; whoever dealt the most total damage wins (a tie is a draw, no reward). The damage the enemy dealt is subtracted from the player's HP afterwards (min 1); HP regenerates 2% of max per minute and a fight needs >= 10% HP.
+- Gear (helmet, armor, weapon, boots) adds STR/DEX/HP; one equipped item per slot. Enemies drop their item on a win (30%, boss 50%). Starter: Rusty Sword.
 - `simulateBattle` is a pure function with an injectable RNG; battle logic lives in `server/src/game/`, HTTP in `routes/`.
 
 ## Skills
