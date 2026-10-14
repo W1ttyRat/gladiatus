@@ -30,6 +30,8 @@ arenaRouter.post("/arena/:characterId", async (req: AuthedRequest, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // lock both fighters in id order so two players attacking each other cannot deadlock
+    await client.query("SELECT id FROM characters WHERE user_id = $1 OR id = $2 ORDER BY id FOR UPDATE", [req.userId, opponentId]);
     const c = await loadCharacter(req.userId!, client, true);
     if (!c) {
       await client.query("ROLLBACK");

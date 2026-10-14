@@ -28,17 +28,22 @@ export function mulberry32(seed: number): Rng {
   };
 }
 
+/** Third-person verb, or the bare form when the subject is "You". */
+function v(name: string, verb: string): string {
+  return name === "You" ? verb : verb + "s";
+}
+
 function strike(att: Fighter, def: Fighter, rng: Rng): { dmg: number; line: string } {
-  if (rng() > hitChance(att.dexterity, def.dexterity)) return { dmg: 0, line: `${att.name} swings at ${def.name} but misses.` };
-  if (rng() < blockChance(def.intelligence)) return { dmg: 0, line: `${def.name} blocks ${att.name}'s attack!` };
+  if (rng() > hitChance(att.dexterity, def.dexterity)) return { dmg: 0, line: `${att.name} ${v(att.name, "swing")} at ${def.name} but misses.` };
+  if (rng() < blockChance(def.intelligence)) return { dmg: 0, line: `${def.name} ${v(def.name, "block")} ${att.name === "You" ? "your" : att.name + "'s"} attack!` };
   const crit = rng() < critChance(att.dexterity);
   const base = att.strength * (0.8 + rng() * 0.4) * (1 - damageReduction(def.constitution));
   const dmg = Math.max(1, Math.round(crit ? base * 1.8 : base));
   return {
     dmg,
     line: crit
-      ? `${att.name} lands a CRITICAL blow on ${def.name} for ${dmg} damage!`
-      : `${att.name} hits ${def.name} for ${dmg} damage.`,
+      ? `${att.name} ${v(att.name, "land")} a CRITICAL blow on ${def.name} for ${dmg} damage!`
+      : `${att.name} ${v(att.name, "hit")} ${def.name} for ${dmg} damage.`,
   };
 }
 
@@ -50,7 +55,7 @@ function attackTurn(att: Fighter, def: Fighter, rng: Rng, log: string[]): number
   total += first.dmg;
   if (rng() < doubleAttackChance(att.strength, att.charisma)) {
     const second = strike(att, def, rng);
-    log.push(`${att.name} attacks again! ${second.line}`);
+    log.push(`${att.name} ${v(att.name, "attack")} again! ${second.line}`);
     total += second.dmg;
   }
   return total;
@@ -60,7 +65,7 @@ function attackTurn(att: Fighter, def: Fighter, rng: Rng, log: string[]): number
 export function simulateBattle(player: Fighter, enemy: Fighter, rng: Rng): BattleResult {
   let playerDamage = 0;
   let enemyDamage = 0;
-  const log = [`${player.name} faces ${enemy.name}! Ten rounds, most damage wins.`];
+  const log = [`${player.name} ${v(player.name, "face")} ${enemy.name}! Ten rounds, most damage wins.`];
   const playerFirst = player.dexterity >= enemy.dexterity;
 
   for (let round = 1; round <= BATTLE_ROUNDS; round++) {

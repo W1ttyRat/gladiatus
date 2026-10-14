@@ -25,6 +25,9 @@ Text-based browser RPG. Players spend attack points (AP) to fight enemies; battl
 - Client pages live in `client/src/pages/`; add a page by adding it to `NAV` in `App.tsx`.
 - `simulateBattle` is a pure function with an injectable RNG; battle logic lives in `server/src/game/`, HTTP in `routes/`.
 
+## Security notes
+- `JWT_SECRET` is required when `NODE_ENV=production`. Usernames are unique case-insensitively (`006_username_ci.sql`); login ignores case. The arena locks both fighters' rows in id order to avoid deadlocks. Express serves `client/dist` when it exists.
+
 ## Skills
 - task-observer lives in `.claude/skills/task-observer/`. Invoke it before the first tool call of any session and before proposing a plan.
 

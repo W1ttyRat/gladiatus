@@ -41,7 +41,7 @@ authRouter.post("/register", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   const parsed = creds.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid credentials" });
-  const { rows } = await pool.query("SELECT id, password_hash FROM users WHERE username = $1", [parsed.data.username]);
+  const { rows } = await pool.query("SELECT id, password_hash FROM users WHERE lower(username) = lower($1)", [parsed.data.username]);
   const u = rows[0];
   if (!u || !(await bcrypt.compare(parsed.data.password, u.password_hash))) {
     return res.status(401).json({ error: "Invalid credentials" });

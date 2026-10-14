@@ -7,6 +7,9 @@
 4. `npm run migrate -w server` then `npm run seed -w server` (run the seed before registering, so new accounts get the starter sword; re-run both after pulling updates)
 5. `npm run dev` and open http://localhost:5173
 
+## Production
+`npm run build`, then set `NODE_ENV=production` and a real `JWT_SECRET` (the server refuses to start without one) and run `npm start -w server`; the API then also serves the built client on its port. Login and register are rate limited (50 requests / 15 min per IP).
+
 ## Optional Claude Code tooling (not installed by default)
 - **claude-mem**: installed as a Claude Code plugin.
 - **task-observer**: vendored in `.claude/skills/task-observer/` (source: github.com/rebelytics/one-skill-to-rule-them-all).
