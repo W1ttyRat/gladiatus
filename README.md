@@ -7,6 +7,9 @@
 4. `npm run migrate -w server` then `npm run seed -w server` (run the seed before registering, so new accounts get the starter sword; re-run both after pulling updates)
 5. `npm run dev` and open http://localhost:5173
 
+## What is in the game
+Expeditions (areas with 3 enemies and a boss), arena (PvP with Elo rating), merchants and tavern, auction house (player market), quests, packages (loot inbox), training, daily reward, battle reports with round-by-round replay, successes (achievements) and the Pantheon (rankings). Gear is shown on a paperdoll: drag items onto slots, or double-click them in the backpack.
+
 ## Production
 `npm run build`, then set `NODE_ENV=production` and a real `JWT_SECRET` (the server refuses to start without one) and run `npm start -w server`; the API then also serves the built client on its port. Login and register are rate limited (50 requests / 15 min per IP).
 

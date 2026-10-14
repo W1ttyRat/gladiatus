@@ -1,10 +1,53 @@
+/* Fonts are loaded in index.html: Marcellus for headings (Roman inscription capitals), Alegreya Sans for text. */
 :root {
-  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* surfaces */
+  --basalt: #15110e;
+  --stone: #1f1915;
+  --stone-2: #2a221c;
+  --line: #43362a;
+  --line-strong: #6b5333;
+  /* ink */
+  --marble: #ede5d4;
+  --marble-dim: #a99d88;
+  /* accents */
+  --bronze: #c0904a;
+  --bronze-deep: #6e4f22;
+  --crimson: #a2352a;
+  --crimson-bright: #d0574a;
+  --laurel: #86a15f;
+  /* item quality */
+  --q-common: #b9b0a0;
+  --q-fine: #86a15f;
+  --q-rare: #5b93d6;
+  --q-epic: #b072c0;
+  --q-legendary: #e3a43a;
+
+  --font-display: 'Marcellus', 'Palatino Linotype', Georgia, serif;
+  --font-body: 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif;
+
+  font: 17px/1.5 var(--font-body);
   color-scheme: dark;
-  color: #e8dcc4;
-  background: #14110f;
+  color: var(--marble);
+  background: var(--basalt);
 }
+
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  /* a faint mosaic floor: tiny tesserae in two near-identical browns */
+  background:
+    repeating-conic-gradient(#191410 0 25%, #16120e 0 50%) 0 0 / 26px 26px,
+    var(--basalt);
+}
+
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 400; line-height: 1.2; margin: 0; letter-spacing: 0.01em; }
+
+button, input, select { font: inherit; color: inherit; }
+
+:focus-visible { outline: 2px solid var(--bronze); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

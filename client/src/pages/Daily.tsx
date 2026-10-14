@@ -1,50 +1,58 @@
 import { useEffect, useState } from 'react'
 import { api, type Character, type DailyStatus } from '../api'
+import Icon from '../components/Icon'
+import { useAction, useToast } from '../components/Toast'
 
 export default function Daily({ onCharacter }: { onCharacter: (c: Character) => void }) {
   const [status, setStatus] = useState<DailyStatus | null>(null)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const act = useAction()
+  const toast = useToast()
 
   useEffect(() => {
-    api.daily().then(setStatus).catch((e: Error) => setError(e.message))
-  }, [])
+    act(api.daily).then((s) => s && setStatus(s))
+  }, [act])
 
   async function claim() {
-    setError('')
-    try {
-      const res = await api.claimDaily()
+    const res = await act(api.claimDaily)
+    if (res) {
       onCharacter(res.character)
-      setMessage(`Day ${res.streak}: you received ${res.gold} gold and ${status?.apBonus ?? 0} attack points!`)
-      setStatus(await api.daily())
-    } catch (e) {
-      setError((e as Error).message)
+      toast(`Day ${res.streak}: ${res.gold} gold and ${status?.apBonus ?? 0} attack points.`)
+      setStatus(await act(api.daily) ?? null)
     }
   }
 
-  if (!status) return <p>{error || 'Loading...'}</p>
+  if (!status) return <p className="loading">Reading the tablet...</p>
 
+  // the day that is claimed next (or was claimed today)
+  const current = status.claimedToday ? status.streak : status.nextStreak
   return (
     <>
-      <h2>Daily Reward</h2>
-      <div className="card">
-        <p>Current streak: <strong>{status.streak} {status.streak === 1 ? 'day' : 'days'}</strong></p>
-        <p className="muted">
-          Come back every day to grow the reward. It maxes out at a 7-day streak, but missing a day resets it.
+      <h2>Daily reward</h2>
+      <p className="lede">
+        The emperor's steward pays everyone who returns. Claim once a day to build a streak up to seven days, and miss a day to start over.
+      </p>
+      <ol className="tablets">
+        {status.rewards.map((gold, i) => {
+          const day = i + 1
+          const state = day < current || (day === current && status.claimedToday) ? 'done' : day === current ? 'now' : 'later'
+          return (
+            <li key={day} className={`tablet ${state}`}>
+              <span className="muted">Day {day}</span>
+              {state === 'done' ? <Icon name="check" size={22} /> : <Icon name="coin" size={22} />}
+              <b className="num">{gold}</b>
+            </li>
+          )
+        })}
+      </ol>
+      <div className="daily-foot">
+        <p>
+          {status.claimedToday
+            ? `You collected today's reward. Come back tomorrow for ${status.nextGold} gold.`
+            : `Today pays ${status.nextGold} gold and ${status.apBonus} attack points.`}
         </p>
-        <div className="days">
-          {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-            <div key={d} className={`day ${d <= status.streak ? 'done' : ''}`}>Day {d}</div>
-          ))}
-        </div>
-        {error && <p className="error">{error}</p>}
-        {message && <p className="win">{message}</p>}
-        <div className="row">
-          <span className="muted">
-            {status.claimedToday ? `Tomorrow: ${status.nextGold} gold` : `Today: ${status.nextGold} gold + ${status.apBonus} attack points`}
-          </span>
-          <button disabled={status.claimedToday} onClick={claim}>{status.claimedToday ? 'Claimed today' : 'Claim'}</button>
-        </div>
+        <button className="btn primary" disabled={status.claimedToday} onClick={claim}>
+          {status.claimedToday ? 'Collected' : 'Collect reward'}
+        </button>
       </div>
     </>
   )

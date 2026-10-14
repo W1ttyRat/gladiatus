@@ -11,6 +11,7 @@ export const STAT_INFO: Record<StatKey, { label: string; help: string }> = {
 
 export interface Character {
   id: number
+  name: string
   level: number
   xp: number
   xpToNext: number
@@ -138,12 +139,58 @@ export interface RankingRow {
   enemiesDefeated: number
 }
 
+export interface Round {
+  player: number
+  enemy: number
+}
+
+export interface ReportRow {
+  id: number
+  kind: 'expedition' | 'arena'
+  opponent: string | null
+  won: boolean
+  draw: boolean
+  playerDamage: number
+  enemyDamage: number
+  createdAt: string
+}
+
+export interface Report extends ReportRow {
+  log: string[]
+  rounds: Round[] | null
+}
+
+export interface Achievement {
+  key: string
+  name: string
+  description: string
+  goal: number
+  progress: number
+  rewardGold: number
+  state: 'locked' | 'claimable' | 'claimed'
+}
+
+export interface AuctionListing extends ItemStats {
+  id: number
+  name: string
+  slot: Slot
+  minLevel: number
+  price: number
+  seller: string
+  createdAt: string
+  expiresAt: string
+}
+
+export type RankBy = 'level' | 'arena' | 'defeated' | 'gold'
+
 export interface BattleResponse {
   won: boolean
   draw: boolean
   playerDamage: number
   enemyDamage: number
   drops: { name: string; slot: string }[]
+  rounds: Round[]
+  enemyName: string
   log: string[]
   levelsGained: number
   ratingChange?: number
@@ -163,6 +210,7 @@ export interface DailyStatus {
   claimedToday: boolean
   nextStreak: number
   nextGold: number
+  rewards: number[]
   apBonus: number
 }
 
@@ -217,5 +265,16 @@ export const api = {
   claimDaily: () => post<{ character: Character; gold: number; streak: number }>('/daily/claim'),
   training: () => request<{ costs: Record<StatKey, number> }>('/training'),
   train: (stat: StatKey) => post<{ character: Character; costs: Record<StatKey, number> }>(`/training/${stat}`),
-  rankings: () => request<RankingRow[]>('/rankings'),
+  rankings: (by: RankBy = 'level') => request<RankingRow[]>(`/rankings?by=${by}`),
+  reports: () => request<ReportRow[]>('/reports'),
+  report: (id: number) => request<Report>(`/reports/${id}`),
+  achievements: () => request<Achievement[]>('/achievements'),
+  claimAchievement: (key: string) =>
+    post<{ character: Character; achievements: Achievement[] }>(`/achievements/${key}/claim`),
+  auction: (slot?: Slot, sort: 'price' | 'newest' = 'price') =>
+    request<AuctionListing[]>(`/auction?sort=${sort}${slot ? `&slot=${slot}` : ''}`),
+  myAuctions: () => request<{ listings: AuctionListing[]; max: number; fee: number }>('/auction/mine'),
+  listItem: (itemId: number, price: number) => post<{ ok: true }>('/auction', { itemId, price }),
+  buyListing: (id: number) => post<{ character: Character }>(`/auction/${id}/buy`),
+  cancelListing: (id: number) => post<{ character: Character }>(`/auction/${id}/cancel`),
 }

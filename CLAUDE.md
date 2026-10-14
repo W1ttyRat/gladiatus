@@ -22,8 +22,19 @@ Text-based browser RPG. Players spend attack points (AP) to fight enemies; battl
 - Gear slots: weapon, helmet, armor, boots, amulet (one each) and ring (two at once; equipping a third replaces the oldest) ( bonuses add to stats). Shops (weapons, armor, rings, amulets, food) cost gold; charisma gives a discount; items sell for 40% of base price. Food restores a % of max HP.
 - Enemies roll their loot table on a win: main gear piece (40%, boss 60%), and enemies 2 and 3 of each area can also drop an amulet or ring (15%). Each drop rolls independently. Enemy strength is `2.5 + 1.5*level` (boss x1.6), deliberately low early on. Quests (`defeat_enemy`, `defeat_any`, `defeat_boss`) are accepted, progress on battle wins, then claimed for gold/xp/item. Starter: Rusty Sword.
 - Arena: fight other players (within 5 levels) for 1 AP; Elo rating (`eloDelta`), gold on a win, only the attacker loses HP. Training: gold -> +1 base stat, cost `base^2/2`. Daily reward: gold scales with level and a streak up to 7 days, plus 5 AP; resets after a missed day.
-- Client pages live in `client/src/pages/`; add a page by adding it to `NAV` in `App.tsx`.
+- Client pages live in `client/src/pages/`; add a page by adding it to `NAV` in `App.tsx` (see "Client look and structure").
 - `simulateBattle` is a pure function with an injectable RNG; battle logic lives in `server/src/game/`, HTTP in `routes/`.
+
+## Reports, successes, auction house (007_reports_auction_achievements.sql)
+- Every fight (expedition and arena) is stored in `battle_logs` with kind, opponent, damage totals and per-round damage (`rounds`). `simulateBattle` returns `rounds`; the client replays them in `BattleStage`. `GET /api/reports` lists the last 30, `/reports/:id` returns one log.
+- Successes (achievements) are defined in `server/src/game/achievements.ts`; progress is computed from game state, only the claim is stored in `character_achievements` (gold reward, claim guarded by the primary key).
+- Auction house: a listing takes the item out of the inventory (`auctions`), lasts 48 h, 5% fee to the house, max 10 listings; fixed price only, no bidding. Bought, withdrawn and expired items go to Packages. Deleting the listing row is the guard against double buys.
+- Rankings accept `?by=level|arena|defeated|gold`. Character DTO has `name`; `GET /daily` has `rewards` (gold for days 1-7).
+
+## Client look and structure
+- Visual language: Roman arena. Arched "niches" frame characters, enemies and gear slots; a Greek-key strip sits under the top bar; fonts Marcellus (headings) and Alegreya Sans (body), loaded in `index.html`. All colours are CSS variables in `client/src/index.css`; styles live in `App.css`.
+- Item quality (common..legendary) is derived on the client from the stat total (`qualityOf` in `components/items.tsx`). Tooltips use one shared `TipProvider`/`useTip`; feedback uses toasts (`useToast`, `useAction` wraps API calls).
+- Pages are grouped in `NAV` in `App.tsx` (Gladiator, Combat, Town, Glory); the current page is kept in the URL hash. The battle replay always plays (it is content), with a Skip button.
 
 ## Security notes
 - `JWT_SECRET` is required when `NODE_ENV=production`. Usernames are unique case-insensitively (`006_username_ci.sql`); login ignores case. The arena locks both fighters' rows in id order to avoid deadlocks. Express serves `client/dist` when it exists.

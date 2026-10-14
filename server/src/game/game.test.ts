@@ -10,6 +10,12 @@ describe("simulateBattle", () => {
   it("is deterministic for a given seed", () => {
     expect(simulateBattle(hero, foe, mulberry32(1))).toEqual(simulateBattle(hero, foe, mulberry32(1)));
   });
+  it("reports damage per round that adds up to the totals", () => {
+    const r = simulateBattle(hero, foe, mulberry32(7));
+    expect(r.rounds).toHaveLength(10);
+    expect(r.rounds.reduce((s, x) => s + x.player, 0)).toBe(r.playerDamage);
+    expect(r.rounds.reduce((s, x) => s + x.enemy, 0)).toBe(r.enemyDamage);
+  });
   it("lets a much stronger fighter win", () => {
     expect(simulateBattle(hero, foe, mulberry32(7)).won).toBe(true);
   });

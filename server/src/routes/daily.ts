@@ -30,6 +30,7 @@ dailyRouter.get("/daily", async (req: AuthedRequest, res) => {
     claimedToday: !!d.claimedToday,
     nextStreak,
     nextGold: dailyGold(c.level, nextStreak),
+    rewards: Array.from({ length: MAX_STREAK_MULTIPLIER }, (_, i) => dailyGold(c.level, i + 1)),
     apBonus: DAILY_AP_BONUS,
   });
 });

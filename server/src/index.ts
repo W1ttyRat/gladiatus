@@ -5,6 +5,9 @@ import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { achievementRouter } from "./routes/achievements.js";
+import { auctionRouter } from "./routes/auction.js";
+import { reportRouter } from "./routes/reports.js";
 import { arenaRouter } from "./routes/arena.js";
 import { authRouter } from "./routes/auth.js";
 import { dailyRouter } from "./routes/daily.js";
@@ -36,6 +39,9 @@ app.use("/api", characterRouter);
 app.use("/api", arenaRouter);
 app.use("/api", dailyRouter);
 app.use("/api", trainingRouter);
+app.use("/api", reportRouter);
+app.use("/api", achievementRouter);
+app.use("/api", auctionRouter);
 
 // In production the API also serves the built client (npm run build, then npm start).
 const clientDist = fileURLToPath(new URL("../../client/dist/", import.meta.url));

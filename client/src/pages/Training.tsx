@@ -1,43 +1,47 @@
 import { useEffect, useState } from 'react'
 import { api, STAT_INFO, STAT_KEYS, type Character, type StatKey } from '../api'
+import Icon from '../components/Icon'
+import { useAction, useToast } from '../components/Toast'
 
 export default function Training({ character, onCharacter }: { character: Character; onCharacter: (c: Character) => void }) {
   const [costs, setCosts] = useState<Record<StatKey, number> | null>(null)
-  const [error, setError] = useState('')
+  const act = useAction()
+  const toast = useToast()
 
   useEffect(() => {
-    api.training().then((r) => setCosts(r.costs)).catch((e: Error) => setError(e.message))
-  }, [])
+    act(api.training).then((r) => r && setCosts(r.costs))
+  }, [act])
 
   async function train(stat: StatKey) {
-    setError('')
-    try {
-      const res = await api.train(stat)
+    const res = await act(() => api.train(stat))
+    if (res) {
       onCharacter(res.character)
       setCosts(res.costs)
-    } catch (e) {
-      setError((e as Error).message)
+      toast(`${STAT_INFO[stat].label} is now ${res.character.stats[stat].base}.`)
     }
   }
 
   return (
     <>
       <h2>Training</h2>
-      <p className="muted">
-        Pay gold to permanently raise a stat by one point. The more trained a stat is, the more it costs.
-        You have <strong className="gold">{character.gold} gold</strong>.
+      <p className="lede">
+        The ludus trainers sell permanent improvements for gold. Each point costs more than the last, so spread your coin around.
       </p>
-      {error && <p className="error">{error}</p>}
-      {costs &&
-        STAT_KEYS.map((k) => (
-          <div key={k} className="card enemy">
-            <div>
-              <strong>{STAT_INFO[k].label}</strong> <span className="muted">currently {character.stats[k].base}</span>
-              <div className="muted">{STAT_INFO[k].help}</div>
-            </div>
-            <button disabled={character.gold < costs[k]} onClick={() => train(k)}>Train {costs[k]}g</button>
-          </div>
-        ))}
+      <ul className="shelf">
+        {costs &&
+          STAT_KEYS.map((k) => (
+            <li key={k} className="ware">
+              <div className="cell"><span className="num big-num">{character.stats[k].base}</span></div>
+              <div className="ware-main">
+                <strong>{STAT_INFO[k].label}</strong>
+                <span className="muted">{STAT_INFO[k].help}</span>
+              </div>
+              <button className="btn primary" disabled={character.gold < costs[k]} onClick={() => train(k)}>
+                <Icon name="coin" size={16} /> {costs[k]}
+              </button>
+            </li>
+          ))}
+      </ul>
     </>
   )
 }

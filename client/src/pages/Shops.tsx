@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type Character, type Food, type ShopItem } from '../api'
-import { bonusText } from '../components/ItemInfo'
+import Icon from '../components/Icon'
+import { bonusText, ItemCell, qualityOf, SLOT_LABEL } from '../components/items'
+import { useAction, useToast } from '../components/Toast'
 
 const TABS = [
   { id: 'weapons', label: 'Weapons' },
   { id: 'armor', label: 'Armor' },
   { id: 'rings', label: 'Rings' },
   { id: 'amulets', label: 'Amulets' },
-  { id: 'food', label: 'Food' },
+  { id: 'food', label: 'Tavern' },
 ] as const
 type Tab = (typeof TABS)[number]['id']
 
@@ -15,101 +17,91 @@ export default function Shops({ character, onCharacter }: { character: Character
   const [tab, setTab] = useState<Tab>('weapons')
   const [items, setItems] = useState<ShopItem[]>([])
   const [foods, setFoods] = useState<Food[]>([])
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const act = useAction()
+  const toast = useToast()
 
-  const load = useCallback(async (t: Tab) => {
-    if (t === 'food') setFoods(await api.food())
-    else setItems(await api.shop(t))
-  }, [])
+  const load = useCallback(
+    async (t: Tab) => {
+      if (t === 'food') setFoods((await act(api.food)) ?? [])
+      else setItems((await act(() => api.shop(t))) ?? [])
+    },
+    [act],
+  )
+  useEffect(() => { load(tab) }, [tab, load, character.derived.shopDiscount])
 
-  useEffect(() => {
-    load(tab).catch((e: Error) => setError(e.message))
-  }, [tab, load, character.stats.charisma.total])
-
-  async function act(fn: () => Promise<string>) {
-    setError('')
-    setMessage('')
-    try {
-      setMessage(await fn())
-    } catch (e) {
-      setError((e as Error).message)
+  async function buy(item: ShopItem) {
+    const res = await act(() => api.buy(item.id))
+    if (res) {
+      onCharacter(res.character)
+      toast(`Bought ${item.name}. It is in your backpack.`)
+    }
+  }
+  async function eat(food: Food) {
+    const res = await act(() => api.eat(food.id))
+    if (res) {
+      onCharacter(res.character)
+      toast(`You eat the ${food.name.toLowerCase()} and recover ${res.healed} health.`)
     }
   }
 
-  const buy = (item: ShopItem) =>
-    act(async () => {
-      const res = await api.buy(item.id)
-      onCharacter(res.character)
-      return `Bought ${item.name}. Find it in your inventory.`
-    })
-
-  const eat = (food: Food) =>
-    act(async () => {
-      const res = await api.eat(food.id)
-      onCharacter(res.character)
-      return `You enjoy the ${food.name} and recover ${res.healed} health.`
-    })
+  const missing = character.maxHp - character.hp
 
   return (
     <>
-      <h2>Shops</h2>
-      <p className="muted">
-        You have <strong className="gold">{character.gold} gold</strong>. Your charisma gives you a {(character.derived.shopDiscount * 100).toFixed(1)}% discount.
+      <h2>Merchants</h2>
+      <p className="lede">
+        Your charisma earns you {(character.derived.shopDiscount * 100).toFixed(1)}% off every price. Merchants buy back your spare gear
+        at 40% of its value; for a better price, try the auction house.
       </p>
-      <nav className="tabs">
+      <nav className="chips" aria-label="Shops">
         {TABS.map((t) => (
-          <button key={t.id} className={t.id === tab ? 'active' : ''} onClick={() => setTab(t.id)}>{t.label}</button>
+          <button key={t.id} className={`chip ${t.id === tab ? 'on' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </nav>
-      {error && <p className="error">{error}</p>}
-      {message && <p className="win">{message}</p>}
 
-      {tab === 'food' && (
-        <p className="muted">
-          {character.hp >= character.maxHp
-            ? 'You are at full health.'
-            : `Health ${character.hp}/${character.maxHp}: you are missing ${character.maxHp - character.hp} HP.`}
-        </p>
-      )}
-
-      {tab !== 'food' &&
-        items.map((i) => {
-          const tooLow = character.level < i.minLevel
-          return (
-            <div key={i.id} className={`card enemy ${tooLow ? 'locked' : ''}`}>
-              <div>
-                <strong>{i.name}</strong> <span className="muted">({i.slot})</span>
-                <div className="bonus">{bonusText(i)}</div>
-                {tooLow && <div className="muted">Requires level {i.minLevel}</div>}
-              </div>
-              <button disabled={tooLow || character.gold < i.price} onClick={() => buy(i)}>Buy {i.price}g</button>
-            </div>
-          )
-        })}
-
-      {tab === 'food' &&
-        foods.map((f) => {
-          const tooLow = character.level < f.minLevel
-          return (
-            <div key={f.id} className={`card enemy ${tooLow ? 'locked' : ''}`}>
-              <div>
-                <strong>{f.name}</strong>
-                <div className="bonus">Restores {f.healPct}% of max health (+{f.healAmount} HP)</div>
-                {character.hp < character.maxHp && (
-                  <div className="muted">
-                    {Math.ceil((character.maxHp - character.hp) / f.healAmount)}x to heal fully (
-                    {Math.ceil((character.maxHp - character.hp) / f.healAmount) * f.price}g)
+      {tab === 'food' ? (
+        <>
+          <p className="hint">{missing <= 0 ? 'You are at full health.' : `You are missing ${missing} health.`}</p>
+          <ul className="shelf">
+            {foods.map((f) => {
+              const tooLow = character.level < f.minLevel
+              const needed = missing > 0 ? Math.ceil(missing / f.healAmount) : 0
+              return (
+                <li key={f.id} className={`ware ${tooLow ? 'locked' : ''}`}>
+                  <div className="cell food"><Icon name="food" size={26} /></div>
+                  <div className="ware-main">
+                    <strong>{f.name}</strong>
+                    <span className="muted">Restores {f.healPct}% of your health (+{f.healAmount})</span>
+                    {tooLow ? <span className="muted">Needs level {f.minLevel}</span> : needed > 0 && <span className="muted">{needed} to heal fully, {needed * f.price} gold</span>}
                   </div>
-                )}
-                {tooLow && <div className="muted">Requires level {f.minLevel}</div>}
-              </div>
-              <button disabled={tooLow || character.gold < f.price || character.hp >= character.maxHp} onClick={() => eat(f)}>
-                Eat {f.price}g
-              </button>
-            </div>
-          )
-        })}
+                  <button className="btn primary" disabled={tooLow || character.gold < f.price || missing <= 0} onClick={() => eat(f)}>
+                    <Icon name="coin" size={16} /> {f.price}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      ) : (
+        <ul className="shelf">
+          {items.map((i) => {
+            const tooLow = character.level < i.minLevel
+            return (
+              <li key={i.id} className={`ware ${tooLow ? 'locked' : ''}`}>
+                <ItemCell item={i} />
+                <div className="ware-main">
+                  <strong className={`q-${qualityOf(i).id}`}>{i.name}</strong>
+                  <span className="muted">{SLOT_LABEL[i.slot]} · {bonusText(i)}</span>
+                  {tooLow && <span className="muted">Needs level {i.minLevel}</span>}
+                </div>
+                <button className="btn primary" disabled={tooLow || character.gold < i.price} onClick={() => buy(i)}>
+                  <Icon name="coin" size={16} /> {i.price}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </>
   )
 }

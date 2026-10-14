@@ -78,10 +78,15 @@ arenaRouter.post("/arena/:characterId", async (req: AuthedRequest, res) => {
     );
     // the defender is not hurt, but their rating moves the other way
     await client.query("UPDATE characters SET arena_rating = GREATEST(0, arena_rating - $1) WHERE id = $2", [delta, opp.id]);
+    await client.query(
+      `INSERT INTO battle_logs (character_id, enemy_id, won, log, kind, opponent, player_damage, enemy_damage, rounds)
+       VALUES ($1,NULL,$2,$3,'arena',$4,$5,$6,$7)`,
+      [c.id, result.won, JSON.stringify(result.log), oppName, result.playerDamage, result.enemyDamage, JSON.stringify(result.rounds)],
+    );
     await client.query("COMMIT");
 
     res.json({
-      won: result.won, draw: result.draw, playerDamage: result.playerDamage, enemyDamage: result.enemyDamage,
+      won: result.won, draw: result.draw, playerDamage: result.playerDamage, enemyDamage: result.enemyDamage, rounds: result.rounds, enemyName: oppName,
       log: result.log, levelsGained: 0, drops: [], ratingChange: delta, goldGain,
       character: characterDto((await loadCharacter(req.userId!))!),
     });

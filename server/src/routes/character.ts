@@ -25,12 +25,20 @@ characterRouter.post("/stats/allocate", async (req: AuthedRequest, res) => {
   res.json(characterDto((await loadCharacter(req.userId!))!));
 });
 
-characterRouter.get("/rankings", async (_req, res) => {
+const RANK_ORDER = {
+  level: "c.level DESC, c.xp DESC",
+  arena: "c.arena_rating DESC, c.level DESC",
+  defeated: '"enemiesDefeated" DESC, c.level DESC',
+  gold: "c.gold DESC",
+} as const;
+
+characterRouter.get("/rankings", async (req, res) => {
+  const by = z.enum(["level", "arena", "defeated", "gold"]).catch("level").parse(req.query.by);
   const { rows } = await pool.query(
     `SELECT u.username, c.level, c.xp, c.gold, c.arena_rating AS "arenaRating",
             (SELECT COUNT(*)::int FROM progress p WHERE p.character_id = c.id) AS "enemiesDefeated"
        FROM characters c JOIN users u ON u.id = c.user_id
-      ORDER BY c.level DESC, c.xp DESC LIMIT 50`,
+      ORDER BY ${RANK_ORDER[by]} LIMIT 50`,
   );
   res.json(rows);
 });

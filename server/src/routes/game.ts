@@ -170,9 +170,11 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
       [level, xp, gold, c.ap - AP_COST, c.ap_updated_at, hp, hp === c.hp ? c.hp_updated_at : new Date(),
        levelsGained * STAT_POINTS_PER_LEVEL, c.id],
     );
-    await client.query("INSERT INTO battle_logs (character_id, enemy_id, won, log) VALUES ($1,$2,$3,$4)", [
-      c.id, e.id, result.won, JSON.stringify(result.log),
-    ]);
+    await client.query(
+      `INSERT INTO battle_logs (character_id, enemy_id, won, log, kind, opponent, player_damage, enemy_damage, rounds)
+       VALUES ($1,$2,$3,$4,'expedition',$5,$6,$7,$8)`,
+      [c.id, e.id, result.won, JSON.stringify(result.log), e.name, result.playerDamage, result.enemyDamage, JSON.stringify(result.rounds)],
+    );
     await client.query("COMMIT");
 
     const updated = await loadCharacter(req.userId!);
@@ -181,6 +183,8 @@ gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
       draw: result.draw,
       playerDamage: result.playerDamage,
       enemyDamage: result.enemyDamage,
+      rounds: result.rounds,
+      enemyName: e.name,
       log: result.log,
       levelsGained,
       drops: dropped,

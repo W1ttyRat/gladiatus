@@ -8,6 +8,7 @@ import {
 
 export interface CharacterRow extends Stats {
   id: number;
+  username: string;
   level: number;
   xp: number;
   gold: number;
@@ -35,7 +36,7 @@ export const loadCharacterById = (characterId: number, db: Db = pool, lock = fal
 
 async function loadCharacterBy(column: "user_id" | "id", value: number, db: Db, lock: boolean): Promise<CharacterRow | null> {
   const { rows } = await db.query(
-    `SELECT c.*, b.*
+    `SELECT c.*, b.*, (SELECT username FROM users WHERE id = c.user_id) AS username
        FROM characters c
        CROSS JOIN LATERAL (
          SELECT COALESCE(SUM(i.strength),0)::int AS b_strength,
@@ -55,7 +56,7 @@ async function loadCharacterBy(column: "user_id" | "id", value: number, db: Db, 
   if (!r) return null;
   const bonus = Object.fromEntries(STAT_KEYS.map((k) => [k, r[`b_${k}`]])) as Stats;
   const c: CharacterRow = {
-    id: r.id, level: r.level, xp: r.xp, gold: r.gold, stat_points: r.stat_points, arena_rating: r.arena_rating,
+    id: r.id, username: r.username, level: r.level, xp: r.xp, gold: r.gold, stat_points: r.stat_points, arena_rating: r.arena_rating,
     strength: r.strength, dexterity: r.dexterity, constitution: r.constitution,
     charisma: r.charisma, intelligence: r.intelligence,
     ap: r.ap, ap_updated_at: r.ap_updated_at, hp: r.hp, hp_updated_at: r.hp_updated_at,
@@ -77,6 +78,7 @@ export function characterDto(c: CharacterRow) {
   const maxHp = totalMaxHp(c);
   return {
     id: c.id,
+    name: c.username,
     level: c.level,
     xp: c.xp,
     xpToNext: xpForNextLevel(c.level),

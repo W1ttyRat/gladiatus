@@ -10,6 +10,8 @@ export interface BattleResult {
   playerDamage: number; // total damage the player dealt
   enemyDamage: number; // total damage the enemy dealt (this is what the player loses in HP)
   log: string[];
+  /** damage dealt in each round, for the replay on the client */
+  rounds: { player: number; enemy: number }[];
 }
 
 export type Rng = () => number;
@@ -66,6 +68,7 @@ export function simulateBattle(player: Fighter, enemy: Fighter, rng: Rng): Battl
   let playerDamage = 0;
   let enemyDamage = 0;
   const log = [`${player.name} ${v(player.name, "face")} ${enemy.name}! Ten rounds, most damage wins.`];
+  const rounds: BattleResult["rounds"] = [];
   const playerFirst = player.dexterity >= enemy.dexterity;
 
   for (let round = 1; round <= BATTLE_ROUNDS; round++) {
@@ -73,16 +76,20 @@ export function simulateBattle(player: Fighter, enemy: Fighter, rng: Rng): Battl
     const order: Array<[Fighter, Fighter]> = playerFirst
       ? [[player, enemy], [enemy, player]]
       : [[enemy, player], [player, enemy]];
+    const dealt = { player: 0, enemy: 0 };
     for (const [att, def] of order) {
       const dmg = attackTurn(att, def, rng, log);
-      if (att === player) playerDamage += dmg;
-      else enemyDamage += dmg;
+      if (att === player) dealt.player += dmg;
+      else dealt.enemy += dmg;
     }
+    playerDamage += dealt.player;
+    enemyDamage += dealt.enemy;
+    rounds.push(dealt);
   }
 
   const won = playerDamage > enemyDamage;
   const draw = playerDamage === enemyDamage;
   log.push(`Total damage: ${player.name} ${playerDamage} - ${enemy.name} ${enemyDamage}.`);
   log.push(won ? `${player.name} wins the bout!` : draw ? "A draw! Nobody gains anything." : `${enemy.name} wins the bout...`);
-  return { won, draw, playerDamage, enemyDamage, log };
+  return { won, draw, playerDamage, enemyDamage, log, rounds };
 }

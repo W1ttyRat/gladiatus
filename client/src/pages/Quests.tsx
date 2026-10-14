@@ -1,71 +1,71 @@
 import { useEffect, useState } from 'react'
 import { api, type Character, type Quest } from '../api'
 import Bar from '../components/Bar'
+import Icon from '../components/Icon'
+import { useAction, useToast } from '../components/Toast'
 
 export default function Quests({ onCharacter }: { onCharacter: (c: Character) => void }) {
   const [quests, setQuests] = useState<Quest[]>([])
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const act = useAction()
+  const toast = useToast()
 
   useEffect(() => {
-    api.quests().then(setQuests).catch((e: Error) => setError(e.message))
-  }, [])
+    act(api.quests).then((q) => q && setQuests(q))
+  }, [act])
 
   async function accept(q: Quest) {
-    setError('')
-    try {
-      setQuests((await api.acceptQuest(q.id)).quests)
-    } catch (e) {
-      setError((e as Error).message)
-    }
+    const res = await act(() => api.acceptQuest(q.id))
+    if (res) setQuests(res.quests)
   }
 
   async function claim(q: Quest) {
-    setError('')
-    try {
-      const res = await api.claimQuest(q.id)
+    const res = await act(() => api.claimQuest(q.id))
+    if (res) {
       setQuests(res.quests)
       onCharacter(res.character)
-      setMessage(`Quest rewards claimed: ${q.rewardGold} gold, ${q.rewardXp} XP${q.rewardItem ? `, ${q.rewardItem}` : ''}.${res.levelsGained ? ' Level up!' : ''}`)
-    } catch (e) {
-      setError((e as Error).message)
+      toast(`${q.name}: ${q.rewardGold} gold, ${q.rewardXp} XP${q.rewardItem ? ` and ${q.rewardItem} (in Packages)` : ''}.${res.levelsGained ? ' You gained a level.' : ''}`)
     }
   }
 
   const group = (statuses: Quest['status'][]) => quests.filter((q) => statuses.includes(q.status))
-  const available = group(['available'])
+  const goal = (q: Quest) => `${q.targetCount}x ${q.targetEnemy ?? (q.type === 'defeat_boss' ? 'boss victories' : 'victories')}`
 
   const card = (q: Quest) => (
-    <div key={q.id} className={`card ${q.locked ? 'locked' : ''}`}>
-      <div className="row" style={{ marginTop: 0 }}>
-        <strong>{q.name}</strong>
+    <li key={q.id} className={`quest ${q.status} ${q.locked ? 'locked' : ''}`}>
+      <div className="quest-head">
+        <h4>{q.name}</h4>
         <span className="muted">Level {q.minLevel}+</span>
       </div>
-      <p className="muted">{q.description}</p>
-      <div className="bonus">
-        Reward: {q.rewardGold} gold · {q.rewardXp} XP{q.rewardItem && ` · ${q.rewardItem}`}
+      <p>{q.description}</p>
+      <p className="muted">Goal: {goal(q)}</p>
+      {(q.status === 'active' || q.status === 'completed') && <Bar quiet label="Progress" value={q.progress} max={q.targetCount} tone="laurel" />}
+      <div className="quest-foot">
+        <span className="reward num">
+          <Icon name="coin" size={15} /> {q.rewardGold} · {q.rewardXp} XP{q.rewardItem && ` · ${q.rewardItem}`}
+        </span>
+        {q.status === 'available' && <button className="btn primary" disabled={q.locked} onClick={() => accept(q)}>{q.locked ? `Level ${q.minLevel}` : 'Accept'}</button>}
+        {q.status === 'completed' && <button className="btn primary" onClick={() => claim(q)}>Claim reward</button>}
+        {q.status === 'claimed' && <span className="done"><Icon name="check" size={16} /> Done</span>}
       </div>
-      {(q.status === 'active' || q.status === 'completed') && <Bar label="Progress" value={q.progress} max={q.targetCount} />}
-      <div className="row">
-        <span className="muted">{q.status === 'claimed' ? 'Completed' : `Goal: ${q.targetCount}x ${q.targetEnemy ?? (q.type === 'defeat_boss' ? 'boss victories' : 'victories')}`}</span>
-        {q.status === 'available' && <button disabled={q.locked} onClick={() => accept(q)}>{q.locked ? 'Locked' : 'Accept'}</button>}
-        {q.status === 'completed' && <button onClick={() => claim(q)}>Claim reward</button>}
-      </div>
-    </div>
+    </li>
   )
 
+  const active = group(['active', 'completed'])
+  const claimed = group(['claimed'])
   return (
     <>
       <h2>Quests</h2>
-      {error && <p className="error">{error}</p>}
-      {message && <p className="win">{message}</p>}
-      <h3>Active</h3>
-      {group(['active', 'completed']).map(card)}
-      {group(['active', 'completed']).length === 0 && <p className="muted">No active quests. Accept one below.</p>}
-      <h3>Available</h3>
-      {available.map(card)}
-      {group(['claimed']).length > 0 && <h3>Completed</h3>}
-      {group(['claimed']).map(card)}
+      <h3 className="sub">In progress</h3>
+      {active.length === 0 && <p className="empty">No active quests. Accept one below.</p>}
+      <ul className="quests">{active.map(card)}</ul>
+      <h3 className="sub">Offered to you</h3>
+      <ul className="quests">{group(['available']).map(card)}</ul>
+      {claimed.length > 0 && (
+        <>
+          <h3 className="sub">Finished</h3>
+          <ul className="quests">{claimed.map(card)}</ul>
+        </>
+      )}
     </>
   )
 }
