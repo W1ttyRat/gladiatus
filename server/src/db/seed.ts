@@ -17,7 +17,7 @@ interface ItemDef {
 
 const TIER_LEVELS = [1, 5, 10, 15];
 const TIER_PRICE = [60, 220, 650, 1600];
-const priceOf = (tier: number, factor: number) => Math.round(TIER_PRICE[tier - 1] * factor);
+const priceOf = (tier: number, factor: number) => Math.round(TIER_PRICE[tier - 1]! * factor);
 
 async function insertItem(i: ItemDef): Promise<number> {
   const { rows } = await pool.query(
@@ -117,16 +117,16 @@ for (const [ai, a] of areas.entries()) {
       ],
     );
     enemyIds.set(name, enemy.rows[0].id);
-    const slot = dropSlots[ei];
+    const slot = dropSlots[ei]!; // seed data is static: 4 slots per area
     const itemId = await insertItem({
-      name: a.items[ei], slot, ...dropStats(slot, tier), price: Math.round(TIER_PRICE[tier - 1] * (boss ? 0.9 : 0.5)), minLevel: a.minLevel,
+      name: a.items[ei]!, slot, ...dropStats(slot, tier), price: Math.round(TIER_PRICE[tier - 1]! * (boss ? 0.9 : 0.5)), minLevel: a.minLevel,
     });
-    itemIds.set(a.items[ei], itemId);
+    itemIds.set(a.items[ei]!, itemId);
     await pool.query("INSERT INTO enemy_drops (enemy_id, item_id, chance) VALUES ($1,$2,$3)", [enemy.rows[0].id, itemId, boss ? 0.6 : 0.4]);
     if (ei === 1 || ei === 2) {
       const jslot = ei === 1 ? "amulet" : "ring";
-      const jname = a.jewelry[ei - 1];
-      const jid = await insertItem({ name: jname, slot: jslot, ...jewelryStats(jslot, tier), price: Math.round(TIER_PRICE[tier - 1] * 0.5), minLevel: a.minLevel });
+      const jname = a.jewelry[ei - 1]!;
+      const jid = await insertItem({ name: jname, slot: jslot, ...jewelryStats(jslot, tier), price: Math.round(TIER_PRICE[tier - 1]! * 0.5), minLevel: a.minLevel });
       await pool.query("INSERT INTO enemy_drops (enemy_id, item_id, chance) VALUES ($1,$2,$3)", [enemy.rows[0].id, jid, 0.15]);
     }
   }

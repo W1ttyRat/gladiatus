@@ -20,6 +20,8 @@ import { shopRouter } from "./routes/shop.js";
 import { trainingRouter } from "./routes/training.js";
 
 const app = express();
+// behind a reverse proxy the rate limiter must see the client IP, not the proxy (TRUST_PROXY=1 for one hop)
+if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 app.use(helmet());
 app.use(cors());
 app.use(express.json());

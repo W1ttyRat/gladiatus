@@ -13,25 +13,28 @@ const creds = z.object({
   password: z.string().min(6).max(100),
 });
 
+// compared against when the user does not exist, so login time does not reveal which usernames are taken
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
+
 const sign = (userId: number) => jwt.sign({ sub: String(userId) }, JWT_SECRET, { expiresIn: "7d" });
 
 authRouter.post("/register", async (req, res) => {
   const parsed = creds.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Username 3-20 chars (letters, digits, _), password 6+ chars" });
   const { username, password } = parsed.data;
+  const hash = await bcrypt.hash(password, 10); // before taking a pool connection
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const hash = await bcrypt.hash(password, 10);
     const u = await client.query("INSERT INTO users (username, password_hash) VALUES ($1,$2) RETURNING id", [username, hash]);
     const ch = await client.query("INSERT INTO characters (user_id) VALUES ($1) RETURNING id", [u.rows[0].id]);
     // starter weapon, already equipped (needs `npm run seed` to have run)
     await client.query("INSERT INTO character_items (character_id, item_id, equipped) SELECT $1, id, true FROM items WHERE name = $2", [ch.rows[0].id, "Rusty Sword"]);
     await client.query("COMMIT");
     res.status(201).json({ token: sign(u.rows[0].id) });
-  } catch (e: any) {
+  } catch (e) {
     await client.query("ROLLBACK");
-    if (e.code === "23505") return res.status(409).json({ error: "Username already taken" });
+    if ((e as { code?: string }).code === "23505") return res.status(409).json({ error: "Username already taken" });
     throw e;
   } finally {
     client.release();
@@ -43,7 +46,8 @@ authRouter.post("/login", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: "Invalid credentials" });
   const { rows } = await pool.query("SELECT id, password_hash FROM users WHERE lower(username) = lower($1)", [parsed.data.username]);
   const u = rows[0];
-  if (!u || !(await bcrypt.compare(parsed.data.password, u.password_hash))) {
+  const ok = await bcrypt.compare(parsed.data.password, u?.password_hash ?? DUMMY_HASH);
+  if (!u || !ok) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
   res.json({ token: sign(u.id) });

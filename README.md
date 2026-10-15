@@ -35,7 +35,7 @@ A text-based browser RPG in a Roman arena setting. You spend attack points (AP) 
 Detailed rules and design notes live in [CLAUDE.md](CLAUDE.md); the formulas are in `server/src/game/` (`rules.ts`, `stats.ts`, `achievements.ts`).
 
 ## Production
-`npm run build`, then set `NODE_ENV=production` and a real `JWT_SECRET` (the server refuses to start without one) and run `npm start -w server`; the API then also serves the built client on its port. Login and register are rate limited (50 requests / 15 min per IP).
+`npm run build`, then set `NODE_ENV=production` and a real `JWT_SECRET` (the server refuses to start without one, in any mode), plus `TRUST_PROXY=1` if it sits behind a reverse proxy and run `npm start -w server`; the API then also serves the built client on its port. Login and register are rate limited (50 requests / 15 min per IP).
 
 ## Optional Claude Code tooling (not installed by default)
 - **claude-mem**: installed as a Claude Code plugin.

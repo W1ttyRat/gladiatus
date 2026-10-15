@@ -1,10 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
-  throw new Error("JWT_SECRET must be set in production");
+// No built-in fallback: a missing secret (e.g. NODE_ENV forgotten on a deploy) must not mean forgeable tokens.
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET must be set (see server/.env.example)");
 }
-export const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-me";
+export const JWT_SECRET: string = process.env.JWT_SECRET;
 
 export interface AuthedRequest extends Request {
   userId?: number;

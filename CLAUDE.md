@@ -37,7 +37,7 @@ Text-based browser RPG. Players spend attack points (AP) to fight enemies; battl
 - Pages are grouped in `NAV` in `App.tsx` (Gladiator, Combat, Town, Glory); the current page is kept in the URL hash. The battle replay always plays (it is content), with a Skip button.
 
 ## Security notes
-- `JWT_SECRET` is required when `NODE_ENV=production`. Usernames are unique case-insensitively (`006_username_ci.sql`); login ignores case. The arena locks both fighters' rows in id order to avoid deadlocks. Express serves `client/dist` when it exists.
+- `JWT_SECRET` is always required (no built-in fallback); set `TRUST_PROXY=1` behind a reverse proxy so the rate limiter sees client IPs. Usernames are unique case-insensitively (`006_username_ci.sql`); login ignores case. The arena locks both fighters' rows in id order to avoid deadlocks. Express serves `client/dist` when it exists.
 
 ## Skills
 - task-observer lives in `.claude/skills/task-observer/`. Invoke it before the first tool call of any session and before proposing a plan.
