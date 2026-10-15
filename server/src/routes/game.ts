@@ -1,3 +1,4 @@
+import { isId } from "./ids.js";
 import { randomInt } from "node:crypto";
 import { Router } from "express";
 import { pool } from "../db/pool.js";
@@ -56,7 +57,7 @@ gameRouter.get("/areas", async (req: AuthedRequest, res) => {
 
 gameRouter.post("/battle/:enemyId", async (req: AuthedRequest, res) => {
   const enemyId = Number(req.params.enemyId);
-  if (!Number.isInteger(enemyId)) return res.status(400).json({ error: "Bad enemy id" });
+  if (!isId(enemyId)) return res.status(400).json({ error: "Bad enemy id" });
 
   const client = await pool.connect();
   try {

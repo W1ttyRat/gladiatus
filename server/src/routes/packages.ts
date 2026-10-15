@@ -1,3 +1,4 @@
+import { MAX_ID } from "./ids.js";
 import { Router } from "express";
 import { z } from "zod";
 import { pool } from "../db/pool.js";
@@ -41,7 +42,7 @@ packageRouter.get("/packages", async (req: AuthedRequest, res) => {
 
 /** Moves a package's item into the inventory (this is what the drag-and-drop calls). */
 packageRouter.post("/packages/:id/claim", async (req: AuthedRequest, res) => {
-  const id = z.coerce.number().int().safeParse(req.params.id);
+  const id = z.coerce.number().int().min(1).max(MAX_ID).safeParse(req.params.id);
   if (!id.success) return res.status(400).json({ error: "Bad package id" });
   const client = await pool.connect();
   let characterId = 0;

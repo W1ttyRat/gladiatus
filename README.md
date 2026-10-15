@@ -41,3 +41,11 @@ Detailed rules and design notes live in [CLAUDE.md](CLAUDE.md); the formulas are
 - **claude-mem**: installed as a Claude Code plugin.
 - **task-observer**: vendored in `.claude/skills/task-observer/` (source: github.com/rebelytics/one-skill-to-rule-them-all).
 - **Headroom** (context-compression proxy) and **OmniRoute** (multi-provider gateway, `npm i -g omniroute`, dashboard on :20128) both work by redirecting `ANTHROPIC_BASE_URL`, so they must be chained rather than used side by side. OmniRoute also holds provider credentials and sees your traffic. Verify each project's own install docs before enabling.
+
+## Deploying to Render
+The repo ships a `render.yaml` Blueprint (one web service plus one Postgres database).
+1. Push the repo to GitHub, then in Render choose New > Blueprint and select it. Render creates the database, generates `JWT_SECRET` and wires `DATABASE_URL`.
+2. Each deploy runs `npm ci --include=dev`, `npm run build` and `npm run migrate -w server` (idempotent), then `npm start -w server`, which also serves the built client.
+3. Seed once, before anyone registers. The free plan has no shell, so run it from your machine against the database's **External Database URL** (Render dashboard > gladiatus-db > Connections), with SSL on:
+   `DATABASE_URL="<external url>?sslmode=require" npm run seed -w server` (PowerShell: set `$env:DATABASE_URL` first). Never re-run the seed on a live game: it wipes progress.
+4. Free tier caveats: the web service sleeps when idle (slow first request) and the free database expires after 30 days. Switch both `plan` values in `render.yaml` for a real launch.

@@ -1,3 +1,4 @@
+import { isId } from "./ids.js";
 import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { requireAuth, type AuthedRequest } from "../middleware/auth.js";
@@ -53,7 +54,7 @@ shopRouter.get("/shop/:category", async (req: AuthedRequest, res) => {
 
 shopRouter.post("/shop/buy/:itemId", async (req: AuthedRequest, res) => {
   const itemId = Number(req.params.itemId);
-  if (!Number.isInteger(itemId)) return res.status(400).json({ error: "Bad item id" });
+  if (!isId(itemId)) return res.status(400).json({ error: "Bad item id" });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -95,7 +96,7 @@ shopRouter.post("/shop/buy/:itemId", async (req: AuthedRequest, res) => {
 
 shopRouter.post("/shop/eat/:foodId", async (req: AuthedRequest, res) => {
   const foodId = Number(req.params.foodId);
-  if (!Number.isInteger(foodId)) return res.status(400).json({ error: "Bad food id" });
+  if (!isId(foodId)) return res.status(400).json({ error: "Bad food id" });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

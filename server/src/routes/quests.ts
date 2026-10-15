@@ -1,3 +1,4 @@
+import { MAX_ID } from "./ids.js";
 import { Router } from "express";
 import { z } from "zod";
 import { pool } from "../db/pool.js";
@@ -34,7 +35,7 @@ questRouter.get("/quests", async (req: AuthedRequest, res) => {
 });
 
 questRouter.post("/quests/:id/accept", async (req: AuthedRequest, res) => {
-  const id = z.coerce.number().int().safeParse(req.params.id);
+  const id = z.coerce.number().int().min(1).max(MAX_ID).safeParse(req.params.id);
   if (!id.success) return res.status(400).json({ error: "Bad quest id" });
   const c = await loadCharacter(req.userId!);
   if (!c) return res.status(404).json({ error: "No character" });
@@ -50,7 +51,7 @@ questRouter.post("/quests/:id/accept", async (req: AuthedRequest, res) => {
 });
 
 questRouter.post("/quests/:id/claim", async (req: AuthedRequest, res) => {
-  const id = z.coerce.number().int().safeParse(req.params.id);
+  const id = z.coerce.number().int().min(1).max(MAX_ID).safeParse(req.params.id);
   if (!id.success) return res.status(400).json({ error: "Bad quest id" });
   const client = await pool.connect();
   try {

@@ -1,3 +1,4 @@
+import { isId } from "./ids.js";
 import { randomInt } from "node:crypto";
 import { Router } from "express";
 import { pool } from "../db/pool.js";
@@ -26,7 +27,7 @@ arenaRouter.get("/arena", async (req: AuthedRequest, res) => {
 
 arenaRouter.post("/arena/:characterId", async (req: AuthedRequest, res) => {
   const opponentId = Number(req.params.characterId);
-  if (!Number.isInteger(opponentId)) return res.status(400).json({ error: "Bad opponent id" });
+  if (!isId(opponentId)) return res.status(400).json({ error: "Bad opponent id" });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

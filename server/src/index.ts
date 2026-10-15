@@ -23,11 +23,14 @@ const app = express();
 // behind a reverse proxy the rate limiter must see the client IP, not the proxy (TRUST_PROXY=1 for one hop)
 if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 app.use(helmet());
-app.use(cors());
+// the client is same-origin (Vite proxy in dev, served by this app in production), so CORS is only for separate dev setups
+if (process.env.NODE_ENV !== "production") app.use(cors());
 app.use(express.json());
 
 // slow down password guessing and bcrypt abuse
 const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 50, standardHeaders: true, legacyHeaders: false });
+// general per-IP ceiling for every API call (auction and rankings run DB work on each read)
+app.use("/api", rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: true, legacyHeaders: false }));
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 

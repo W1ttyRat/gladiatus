@@ -1,0 +1,28 @@
+# Render Blueprint: one web service (API + built client) and one Postgres database.
+# Render > New > Blueprint > pick this repo.
+databases:
+  - name: gladiatus-db
+    plan: free            # free Postgres is deleted after 30 days; use a paid plan for a real game
+    databaseName: gladiatus
+
+services:
+  - type: web
+    name: gladiatus
+    runtime: node
+    plan: free            # free web services sleep when idle
+    # Render sets NODE_ENV=production, which skips devDependencies; the build needs tsc/vite/tsx, so include them.
+    # The migrations are idempotent and run on every deploy. Never put the seed here: it wipes progress.
+    buildCommand: npm ci --include=dev && npm run build && npm run migrate -w server
+    startCommand: npm start -w server
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY   # Render's proxy sits in front: the rate limiter must see client IPs
+        value: "1"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gladiatus-db
+          property: connectionString
